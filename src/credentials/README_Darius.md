@@ -28,7 +28,7 @@ log them in detail and flag in the WhatsApp group immediately.
 
 ## Overview
 
-My contribution focused on deployment infrastructure, environment integration, and preparation of the credential issuance pipeline.
+My contribution focused on deployment infrastructure, environment integration, CI/CD automation, and preparation of the Sybol credential issuance pipeline.
 
 The repository now includes:
 
@@ -36,13 +36,15 @@ The repository now includes:
 * Qdrant integration through environment variables
 * Railway health checks
 * Startup resilience when Qdrant is unavailable
-* CI pipeline through GitHub Actions
-* Unit tests covering API startup and dependency injection
-* Documentation for automatic deployment from GitHub
+* GitHub Actions CI pipeline
+* Unit and integration test coverage
+* Sybol credential signing client scaffolding
+* Contract validation for signed credentials
+* Documentation for automatic deployments from GitHub
 
 ---
 
-# Task Completed
+# Tasks Completed
 
 ## Railway Deployment
 
@@ -56,8 +58,6 @@ restartPolicyType = "on_failure"
 ```
 
 ### Health Endpoint
-
-The application exposes:
 
 ```http
 GET /health
@@ -77,7 +77,7 @@ Railway uses this endpoint to determine deployment success.
 
 ## Qdrant Integration
 
-The project uses Qdrant as the vector database for the RAG subsystem.
+The project uses Qdrant as the vector database backing the RAG subsystem.
 
 ### Required Environment Variables
 
@@ -88,13 +88,13 @@ QDRANT_API_KEY=<optional>
 
 ### Railway Setup
 
-A dedicated Railway service should be created using:
+Qdrant is deployed as a separate Railway service:
 
 ```text
 qdrant/qdrant
 ```
 
-A persistent volume must be attached and mounted at:
+A persistent volume must be attached:
 
 ```text
 /qdrant/storage
@@ -106,44 +106,130 @@ The FastAPI service communicates with Qdrant through Railway private networking.
 
 ## Startup Resilience
 
-The API was modified so that a temporary Qdrant outage does not crash the application.
+The FastAPI lifespan process was modified so that temporary Qdrant failures do not prevent deployment.
 
-During startup:
+Benefits:
 
-```python
-try:
-    ...
-except Exception:
-    ...
-```
-
-The application continues serving requests and remains healthy even if the vector index cannot be built.
-
-This prevents Railway deployment failures caused by unavailable dependencies.
+* Railway deployments remain healthy
+* Health checks continue to pass
+* The application can recover when Qdrant becomes available
+* Dependency outages do not crash the API
 
 ---
 
-# Credential Issuance
+# Sybol Credential Signing Integration
 
-The credential issuance endpoint remains dependent on final information from Sybol.
+## Current Status
 
-Pending information:
+The integration has been scaffolded and is ready to connect to the production Sybol environment.
 
-1. Issuer DID
-2. MEDIA_COMPLIANCE_CREDENTIAL registration confirmation
-3. Final signing endpoint specification
+Implemented:
 
-Expected integration:
+* Sybol API client
+* Authentication support
+* Error handling
+* Response parsing
+* Contract validation
+* Unit test coverage
+
+Relevant files:
 
 ```text
-FastAPI
-    ↓
-Sybol Business Logic API
-    ↓
-Signed Verifiable Credential
+src/credentials/sybol_client.py
+src/credentials/vc_builder.py
+tests/unit/test_sybol_client.py
 ```
 
-Placeholder scaffolding has been prepared and can be completed once the final API details are provided.
+---
+
+## Supported Validation
+
+The Sybol client validates:
+
+### Issuer DID
+
+```text
+issuer
+```
+
+### Credential Type
+
+```text
+MediaComplianceCredential
+```
+
+### Credential Schema
+
+```text
+credentialSchema
+```
+
+### Proof Section
+
+```text
+proof
+```
+
+Any mismatch generates a detailed exception and log entry.
+
+---
+
+## Pending Information from Sybol
+
+The following values are still required before credential issuance can be fully enabled:
+
+### Issuer DID
+
+```env
+SYBOL_EXPECTED_ISSUER_DID=
+```
+
+### Credential Schema Registration
+
+Confirmation that:
+
+```text
+MEDIA_COMPLIANCE_CREDENTIAL
+```
+
+is registered in the Sybol catalog.
+
+Required:
+
+```env
+SYBOL_CREDENTIAL_SCHEMA_ID=
+```
+
+### Signing Endpoint
+
+Confirmation whether signing should occur through:
+
+```text
+/credentials/issue
+```
+
+or
+
+```text
+/api/bl/credentials
+```
+
+or another dedicated endpoint.
+
+Required:
+
+```env
+SYBOL_API_URL=
+```
+
+### Authentication
+
+Required values:
+
+```env
+SYBOL_ACCESS_TOKEN=
+SYBOL_ID_TOKEN=
+```
 
 ---
 
@@ -155,16 +241,15 @@ GitHub Actions CI is configured through:
 .github/workflows/ci.yml
 ```
 
-Pipeline triggers:
+Current triggers:
 
 ```yaml
 push:
   branches:
-    - devel
+    - main
 
 pull_request:
   branches:
-    - devel
     - main
 ```
 
@@ -201,7 +286,7 @@ Coverage threshold:
 80%
 ```
 
-Current coverage exceeds the requirement.
+Current coverage exceeds the minimum requirement.
 
 ---
 
@@ -216,7 +301,7 @@ poetry install --with dev
 ## Configure Environment
 
 ```bash
-cp src/.env.example src/.env
+cp .env.example .env
 ```
 
 Populate:
@@ -282,9 +367,10 @@ railway logs
 
 The repository owner must:
 
-1. Own or have admin access to the repository
+1. Have admin access to the repository
 2. Connect GitHub to Railway
-3. Grant Railway GitHub App access to the repository
+3. Grant Railway GitHub App access
+4. Connect the Railway service to the repository
 
 ---
 
@@ -310,7 +396,7 @@ Enable:
 Auto Deploy = ON
 ```
 
-Set branch:
+Set deployment branch:
 
 ```text
 main
@@ -338,7 +424,7 @@ Production Environment
 
 ## Verifying Deployment
 
-After every deployment:
+Health check:
 
 ```bash
 curl https://<railway-domain>/health
@@ -352,7 +438,7 @@ Expected:
 }
 ```
 
-Additionally verify:
+Inspect logs:
 
 ```bash
 railway logs
@@ -364,12 +450,15 @@ No startup exceptions should appear.
 
 # Repository Handover Notes
 
-Before merging to main:
+Before merging future work:
 
 * Ensure all tests pass
 * Ensure Qdrant service is running
 * Ensure Railway environment variables are configured
-* Ensure Railway is connected to the GitHub repository
-* Ensure Auto Deploy targets the `main` branch
+* Ensure Railway is connected to GitHub
+* Ensure Auto Deploy targets `main`
+* Ensure Sybol environment variables are configured when available
 
-After these steps, deployments become fully automatic and no manual `railway up` commands are required.
+The repository is deployment-ready.
+
+The only remaining blocker for full credential issuance is receiving the final Sybol configuration values (issuer DID, schema registration, signing endpoint, and authentication credentials).
