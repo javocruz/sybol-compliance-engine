@@ -1,3 +1,5 @@
+# TODO(Darius): Implement the following fields in the Settings dataclass: sybol_expected_issuer_did, sybol_expected_credential_type, sybol_expected_schema_id
+
 import os
 from dataclasses import dataclass, field
 
@@ -30,9 +32,28 @@ class Settings:
     sybol_id_token: str | None = field(
         default_factory=lambda: os.getenv("SYBOL_ID_TOKEN")
     )
+    sybol_expected_issuer_did: str = field(
+        default_factory=lambda: os.getenv(
+            "SYBOL_EXPECTED_ISSUER_DID",
+            "TBD_pending_issuer_did_confirmation_from_inigo",
+        )
+    )
+    sybol_expected_credential_type: str = field(
+        default_factory=lambda: os.getenv(
+            "SYBOL_CREDENTIAL_TYPE",
+            "MediaComplianceCredential",
+        )
+    )
+    sybol_expected_schema_id: str = field(
+        default_factory=lambda: os.getenv(
+            "SYBOL_CREDENTIAL_SCHEMA_ID",
+            "TBD_pending_catalog_registration_confirmation",
+        )
+    )
     sybol_request_timeout: float = field(
         default_factory=lambda: float(os.getenv("SYBOL_REQUEST_TIMEOUT", "10.0"))
     )
+
 
 
 def get_settings() -> Settings:
@@ -53,6 +74,9 @@ def get_sybol_client(settings: Settings | None = None):
         access_token=settings.sybol_access_token,
         id_token=settings.sybol_id_token,
         timeout=settings.sybol_request_timeout,
+        # expected_issuer_did=settings.sybol_expected_issuer_did,
+        # expected_credential_type=settings.sybol_expected_credential_type,
+        # expected_schema_id=settings.sybol_expected_schema_id,
     )
 
 

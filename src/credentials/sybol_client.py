@@ -31,11 +31,17 @@ class SybolClient:
         access_token: str | None,
         id_token: str | None,
         timeout: float = 10.0,
+        expected_issuer_did: str | None = None,
+        expected_credential_type: str | None = None,
+        expected_schema_id: str | None = None,
     ) -> None:
         self._api_url = api_url
         self._access_token = access_token
         self._id_token = id_token
         self._timeout = timeout
+        self._expected_issuer_did = _normalize_expected(expected_issuer_did)
+        self._expected_credential_type = _normalize_expected(expected_credential_type)
+        self._expected_schema_id = _normalize_expected(expected_schema_id)
 
     @property
     def is_configured(self) -> bool:
@@ -124,6 +130,13 @@ class SybolClient:
                 "possible schema mismatch."
             )
 
+        _validate_expected_contract(
+            data,
+            expected_issuer_did=self._expected_issuer_did,
+            expected_credential_type=self._expected_credential_type,
+            expected_schema_id=self._expected_schema_id,
+        )
+
         return data
 
 
@@ -134,3 +147,67 @@ def _extract_error_message(envelope: object, fallback_text: str) -> str:
             if value:
                 return str(value)[:400]
     return fallback_text[:400]
+
+
+def _normalize_expected(value: str | None) -> str | None:
+    if not value:
+        return None
+    if value.startswith(_TBD_PREFIX):
+        return None
+    return value
+
+
+def _validate_expected_contract(
+    data: dict,
+    *,
+    expected_issuer_did: str | None,
+    expected_credential_type: str | None,
+    expected_schema_id: str | None,
+) -> None:
+    if expected_issuer_did and data.get("issuer") != expected_issuer_did:
+        logger.error(
+            "Sybol response issuer mismatch: expected=%s actual=%s data=%s",
+            expected_issuer_did,
+            data.get("issuer"),
+            data,
+        )
+        raise SybolSigningError(
+            f"Sybol API returned unexpected issuer DID: expected {expected_issuer_did}, "
+            f"got {data.get('issuer')}"
+        )
+
+    if expected_credential_type:
+        types = data.get("type")
+        if isinstance(types, str):
+            types = [types]
+        if not isinstance(types, list) or expected_credential_type not in types:
+            logger.error(
+                "Sybol response type mismatch: expected=%s actual=%s data=%s",
+                expected_credential_type,
+                data.get("type"),
+                data,
+            )
+            raise SybolSigningError(
+                "Sybol API returned credential type mismatch — "
+                f"expected {expected_credential_type}"
+            )
+
+    if expected_schema_id:
+        credential_schema = data.get("credentialSchema")
+        schema_id = None
+        if isinstance(credential_schema, dict):
+            schema_id = credential_schema.get("id")
+        elif isinstance(credential_schema, str):
+            schema_id = credential_schema
+
+        if schema_id != expected_schema_id:
+            logger.error(
+                "Sybol response schema mismatch: expected=%s actual=%s data=%s",
+                expected_schema_id,
+                schema_id,
+                data,
+            )
+            raise SybolSigningError(
+                "Sybol API returned credentialSchema mismatch — "
+                f"expected {expected_schema_id}"
+            )

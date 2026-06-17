@@ -2,9 +2,9 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [feature/sybol-vc-signing, main]
   push:
-    branches: [main]
+    branches: [feature/sybol-vc-signing, main]
 
 jobs:
   test:

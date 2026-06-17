@@ -1,3 +1,5 @@
+# TODO(Darius): Replace url=None with a valid URL in the test below once the Sybol API is available for testing.
+
 from unittest.mock import MagicMock, patch
 
 import httpx
@@ -201,3 +203,69 @@ def test_sign_raises_on_non_json_response():
     with patch("src.credentials.sybol_client.httpx.post", return_value=mock_response):
         with pytest.raises(SybolSigningError, match="non-JSON"):
             _client().sign_credential(UNSIGNED_PAYLOAD)
+
+
+# --- sign_credential: contract validation ---
+
+
+def test_sign_raises_when_issuer_mismatch():
+    mock_response = MagicMock()
+    mock_response.is_success = True
+    mock_response.json.return_value = {
+        "success": True,
+        "data": {**SIGNED_VC, "issuer": "did:example:wrong"},
+    }
+
+    client = SybolClient(
+        api_url=VALID_URL,
+        access_token=VALID_ACCESS_TOKEN,
+        id_token=VALID_ID_TOKEN,
+        expected_issuer_did="did:sybol:tenant123:issuer",
+    )
+
+    with patch("src.credentials.sybol_client.httpx.post", return_value=mock_response):
+        with pytest.raises(SybolSigningError, match="issuer DID"):
+            client.sign_credential(UNSIGNED_PAYLOAD)
+
+
+def test_sign_raises_when_credential_type_mismatch():
+    mock_response = MagicMock()
+    mock_response.is_success = True
+    mock_response.json.return_value = {
+        "success": True,
+        "data": {**SIGNED_VC, "type": ["VerifiableCredential", "OtherCredential"]},
+    }
+
+    client = SybolClient(
+        api_url=VALID_URL,
+        access_token=VALID_ACCESS_TOKEN,
+        id_token=VALID_ID_TOKEN,
+        expected_credential_type="MediaComplianceCredential",
+    )
+
+    with patch("src.credentials.sybol_client.httpx.post", return_value=mock_response):
+        with pytest.raises(SybolSigningError, match="credential type mismatch"):
+            client.sign_credential(UNSIGNED_PAYLOAD)
+
+
+def test_sign_raises_when_schema_mismatch():
+    mock_response = MagicMock()
+    mock_response.is_success = True
+    mock_response.json.return_value = {
+        "success": True,
+        "data": {
+            **SIGNED_VC,
+            "credentialSchema": {"id": "did:example:other-schema", "type": "JsonSchema"},
+        },
+    }
+
+    client = SybolClient(
+        api_url=VALID_URL,
+        access_token=VALID_ACCESS_TOKEN,
+        id_token=VALID_ID_TOKEN,
+        expected_schema_id="https://catalog.sybol.id/schemas/MediaComplianceCredential",
+    )
+
+    with patch("src.credentials.sybol_client.httpx.post", return_value=mock_response):
+        with pytest.raises(SybolSigningError, match="credentialSchema mismatch"):
+            client.sign_credential(UNSIGNED_PAYLOAD)
