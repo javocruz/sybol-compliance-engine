@@ -1,11 +1,12 @@
 # Sybol Compliance Engine — Project Status
 
-**Last updated:** 14 June 2026  
+**Last updated:** 20 June 2026  
 **Team lead:** Javier Cruz  
-**Partner:** Sybol — Iñigo García de Mata (CTO)  
+**Partner:** Sybol — Iñigo García de Mata (CTO), Pelayo (Product)  
 **Presentation deadline:** 25 June 2026, 16:00  
+**Repository baseline:** `main` @ `bfe5d59` (PR #5 + #6 merged)
 
-This document is the single source of truth for what has been built, what remains, and how close the project is to its stated goals. It reflects the repository state on the `devel` branch.
+This document is the single source of truth for what has been built, what remains, and how close the project is to its stated goals.
 
 ---
 
@@ -15,16 +16,16 @@ The **Compliance AI Engine** is a FastAPI service that scores media authenticity
 
 | Area | Status | Notes |
 |------|--------|-------|
-| Core scoring pipeline | **Done** | Four signals, weighted score, compliance bands |
-| RAG compliance engine | **Code done, data missing** | Pipeline implemented; regulation PDFs not in repo |
+| Core scoring pipeline | **Done** | Four signals + profile rules; golden-set calibrated |
+| RAG compliance engine | **Code done, data missing** | Pipeline implemented; 0/5 regulation PDFs in repo |
 | VC payload construction | **Mostly done** | VC 1.1-style payload; some VC 2.0 fields deferred |
-| Sybol signing integration | **Scaffolded, blocked** | Client ready; real Cognito tokens pending |
-| Automated tests | **Done** | 93 tests, ~90% coverage |
-| QA golden dataset | **Not started** | Only README stubs in `qa/test_cases/` |
+| Sybol signing integration | **Scaffolded, blocked** | OpenAPI v4 client ready; develop auth + catalog pending |
+| Automated tests | **Done** | **122 tests**, ~90% coverage |
+| QA golden dataset | **Partial** | 67 images (30 authentic, 37 AI); **0 edited** |
 | Research paper | **Not started** | No `paper/draft.md` |
-| End-to-end demo | **Partially ready** | `/api/analyze` works standalone; `/api/issue` blocked |
+| End-to-end demo | **Partially ready** | `/api/analyze` works; `/api/issue` blocked on Sybol + RAG |
 
-**Bottom line:** Engineering is roughly **75–80% complete**. The remaining work is dominated by external dependencies (Sybol auth), input data (regulation PDFs and labeled images), validation (acceptance tests and metrics), and deliverables (paper, technical docs, demo materials).
+**Bottom line:** Core engineering is roughly **~85% complete**. Remaining work is dominated by external dependencies (Sybol access, regulation PDFs), QA completion (edited images, RAG metrics, e2e), and presentation deliverables (paper, demo script).
 
 ---
 
@@ -36,26 +37,24 @@ There is no standardized, machine-readable way to prove whether a piece of media
 
 ### What we are building
 
-Three interconnected parts:
-
-1. **Media Authenticity Scoring** — Four independent signals (`m`, `a`, `v`, `p`) combined into a score in `[0.0, 1.0]` with compliance status mapping.
-2. **RAG Compliance Engine** — Ingests EU regulation PDFs, retrieves relevant articles, and produces structured `regulationRefs` for explainability.
-3. **Verifiable Credential Issuance** — Encodes score, breakdown, regulation citations, and audit trail into a W3C VC signed through Sybol's `businessLogic` API.
+1. **Media Authenticity Scoring** — Four signals (`m`, `a`, `v`, `p`) combined into a score in `[0.0, 1.0]` with compliance status mapping.
+2. **RAG Compliance Engine** — Ingests EU regulation PDFs, retrieves relevant articles, and produces structured `regulationRefs`.
+3. **Verifiable Credential Issuance** — Encodes score, breakdown, regulation citations, and audit trail into a W3C VC signed through Sybol BusinessWallet.
 
 ### Deliverables (priority order)
 
 | Priority | Deliverable | Deadline | Status |
 |----------|-------------|----------|--------|
-| **Primary** | Research paper (publication standard) | 25 Jun 2026 | Not started |
-| **Secondary** | Functional end-to-end demo (upload → score → signed VC) | 25 Jun 2026 | Partial — scoring works; signing blocked |
-| **Tertiary** | Production-ready Sybol integration | 25 Jun 2026 (stretch) | Scaffolded |
+| **Primary** | Research paper | 25 Jun 2026 | Not started |
+| **Secondary** | Functional demo (upload → score → signed VC) | 25 Jun 2026 | Partial — analyze ready; signing blocked |
+| **Tertiary** | Production-ready Sybol integration | 25 Jun 2026 (stretch) | Scaffolded on develop API |
 
 ### Compliance score interpretation
 
 | Score range | Status | Meaning |
 |-------------|--------|---------|
 | 0.0 – 0.3 | `non-compliant` | Likely AI-generated or deepfake |
-| 0.3 – 0.7 | `review` | Partially authentic or edited — human review |
+| 0.3 – 0.7 | `review` | Partially authentic or edited |
 | 0.7 – 1.0 | `compliant` | Passes signal checks |
 
 ---
@@ -64,51 +63,13 @@ Three interconnected parts:
 
 | Person | Area | Primary responsibilities |
 |--------|------|--------------------------|
-| **Javier Cruz** | Technical lead | Scoring pipeline, VC payload, audit trail, repo/docs |
-| **Alex Garcia Perdriau** | RAG & backend | PDF ingest, Qdrant indexing, `/query`, FastAPI, Railway |
-| **Darius-Luca Petruti** | Infra & Sybol | CI/CD, Railway, Sybol API client, deployment |
-| **Saba Zarandia** | QA lead | pytest framework, TC-001–006, schema/property tests |
-| **Youssef Ayman** | QA & RAG eval | Golden dataset, RAG metrics, QA log |
-| **Maxim Heller** | Research / legal | Regulation PDFs, legal validation, paper Ch. 3, DPIA |
-| **Jana Eltoni** | Research / paper | Ch. 1 & 4, formatting, demo materials |
-
----
-
-## Architecture overview
-
-```
-┌─────────────┐     ┌──────────────────┐     ┌─────────────────┐     ┌──────────────┐
-│  Upload     │────▶│  Scoring Module  │────▶│  RAG Engine     │────▶│  VC Builder  │
-│  (image)    │     │  m, a, v, p      │     │  Qdrant+Mistral │     │  unsigned VC │
-└─────────────┘     └──────────────────┘     └─────────────────┘     └──────┬───────┘
-                                                                            │
-                     ┌──────────────────┐     ┌─────────────────┐          │
-                     │  Qdrant audit    │◀────│  /issue route   │◀─────────┘
-                     │  (evidenceUrl) │     │  orchestration  │
-                     └──────────────────┘     └────────┬────────┘
-                                                         │
-                                                         ▼
-                                                ┌─────────────────┐
-                                                │  Sybol API      │
-                                                │  signed VC      │
-                                                └─────────────────┘
-```
-
-### Confirmed stack
-
-| Layer | Technology |
-|-------|------------|
-| API | FastAPI |
-| RAG | LlamaIndex |
-| Vector DB | Qdrant |
-| LLM synthesis | Mistral Large |
-| Embeddings | `sentence-transformers/all-MiniLM-L6-v2` (local) |
-| Deepfake model | `dima806/deepfake_vs_real_image_detection` |
-| Vision | OpenCV |
-| EXIF | ExifRead |
-| Perceptual hash | imagehash |
-| Deployment | Railway |
-| Credential standard | W3C VC (1.1 payload shape; 2.0 target in scope) |
+| **Javier Cruz** | Technical lead | Scoring, VC payload, docs, Sybol coordination |
+| **Alex Garcia Perdriau** | RAG & backend | PDF ingest, Qdrant, `/query`, Railway |
+| **Darius-Luca Petruti** | Infra & Sybol | CI/CD, Railway, deployment env |
+| **Saba Zarandia** | QA lead | pytest harness, TC-001–006, QA log |
+| **Youssef Ayman** | QA & RAG eval | Golden dataset extensions, RAG metrics |
+| **Maxim Heller** | Research / legal | Regulation PDFs, paper Ch. 3, DPIA |
+| **Jana Eltoni** | Research / paper | Ch. 1 & 4, demo script and slides |
 
 ---
 
@@ -118,319 +79,192 @@ Three interconnected parts:
 
 | Item | Status | Details |
 |------|--------|---------|
-| Preprocessing (resize 224×224, RGB, EXIF before transform) | Done | `preprocess.py` |
-| Signal `m` — metadata integrity | Done | EXIF fields, editing software tags, timestamps |
-| Signal `a` — generative artifacts | Done | CNN deepfake detector, FFT, noise residual |
-| Signal `v` — visual consistency | Done | OpenCV lighting/shadow/edge checks; no facial landmarks |
-| Signal `p` — provenance | Done (limited data) | pHash vs reference index; **reference folder empty** |
-| Weighted scoring `S = wm·m + wa·a + wv·v + wp·p` | Done | Hand-tuned weights in `constants.py` |
-| Platt scaling calibration | **Not done** | `PLATT_ENABLED = False`; no `platt_params.json` |
-| Compliance status mapping | Done | Thresholds 0.3 / 0.7 |
-| SHA-256 `media_hash` | Done | Hash of raw file before resize |
-| `POST /api/analyze` | Done | Works without Qdrant or Mistral |
-| Deepfake model download | Done | ~100 MB from HuggingFace on first run |
+| Four signals (`m`, `a`, `v`, `p`) | Done | Metadata, artifacts, visual, provenance |
+| Format-aware artifacts | Done | PNG/no-EXIF path weights fake probability |
+| Profile rules in `scorer.py` | Done | Provenance floor, EXIF-rich floor, synthetic cap, edited clamp |
+| Golden-set calibration | Done | **67/67** TC band pass; see `scoring_report.csv` |
+| Provenance reference index | Done | 30 photos in `qa/test_cases/authentic/` |
+| Platt scaling | Optional | `scripts/fit_platt_calibration.py`; `PLATT_ENABLED = False` |
+| `POST /api/analyze` | Done | No external deps required |
 
-**Gaps:** Provenance defaults to `0.5` when `qa/test_cases/authentic/` is empty. Platt calibration and weight tuning on a golden dataset are not implemented. Scoring accuracy against acceptance thresholds (≥ 85%) has not been measured.
+**Caveat:** Authentic golden labels rely on the same photos being in the provenance reference index. Production use requires a real reference corpus.
 
 ---
 
 ### 2. RAG compliance engine (`src/rag/`)
 
-| Item | Status | Details |
-|------|--------|---------|
-| PDF ingestion (`SimpleDirectoryReader`) | Done | Expects PDFs in `research/regulations/` |
-| Article-level chunking (`SentenceSplitter`) | Done | 400–600 token target with overlap |
-| Local embedding | Done | No external embedding API calls |
-| Qdrant indexing with metadata | Done | Regulation name, article, section tags |
-| Query pipeline (embed → top-k=5 → Mistral) | Done | `query_regulations()` |
-| Hallucination guard | Done | Drops citations with `Unknown` regulation/article |
-| Structured `regulationRefs` output | Done | Ready for VC payload |
-| Ingest CLI (`scripts/ingest.py`) | Done | One-off ingest into Qdrant |
-| Regulation PDFs in repo | **Missing** | Only `research/regulations/README_Maxim.md` exists |
-| Legal accuracy review | **Not done** | Maxim validation pending |
-| RAG evaluation harness (ragas/deepeval) | **Not done** | No precision/recall/hallucination metrics |
+| Item | Status |
+|------|--------|
+| Ingest, chunk, embed, Qdrant index, query pipeline | Done |
+| Regulation PDFs in repo | **Missing (0/5)** |
+| Legal accuracy review | Not done |
+| RAG eval harness (precision/recall/hallucination) | Not done |
 
-**Required PDFs (not yet added):**
-
-- `eu_ai_act.pdf`
-- `gdpr.pdf`
-- `espr_dpp.pdf`
-- `lopdgdd.pdf`
-- `ley_13_2022.pdf`
+**Required PDFs:** `eu_ai_act.pdf`, `gdpr.pdf`, `espr_dpp.pdf`, `lopdgdd.pdf`, `ley_13_2022.pdf`
 
 ---
 
 ### 3. Verifiable credentials (`src/credentials/`)
 
-| Item | Status | Details |
-|------|--------|---------|
-| Unsigned VC payload builder | Done | `vc_builder.py` |
-| Qdrant audit trail (`evidenceUrl`) | Done | `audit.py` — metadata only, no raw images |
-| Sybol API client | Done (scaffold) | `sybol_client.py` — httpx, error handling, proof validation |
-| `POST /api/issue` orchestration | Done | Score → RAG → audit → build → sign |
-| Sybol live signing | **Blocked** | Tokens are `TBD_` placeholders |
-| VC Data Model 2.0 full compliance | **Partial** | See field comparison below |
-
-**VC field status:**
-
-| Field (scope doc) | In payload? | Notes |
-|-------------------|-------------|-------|
-| `id` | Yes | `urn:uuid:{uuid}` |
-| `type` | Yes | `VerifiableCredential`, `MediaComplianceCredential` |
-| `issuer` | No | Resolved server-side by Sybol from auth context |
-| `issuanceDate` | Yes | VC 1.1 field name |
-| `validFrom` | No | VC 2.0 field — deferred |
-| `credentialSchema` | No | Pending Sybol catalog confirmation |
-| `credentialStatus` | No | StatusList2021 — pending catalog confirmation |
-| `credentialSubject.*` | Yes | Score, breakdown, status, refs, hash, timestamps |
-| `evidenceUrl` | Yes | Qdrant audit record URL |
+| Item | Status |
+|------|--------|
+| VC payload builder + audit trail | Done |
+| Sybol client (OpenAPI v4 catalog issuance) | Done (scaffold) |
+| Catalog issue builder + probe scripts | Done |
+| Live signing on develop | **Blocked** |
+| VC 2.0 fields (`validFrom`, `credentialSchema`, `credentialStatus`) | Deferred |
 
 ---
 
-### 4. API layer (`src/api/`)
+### 4. API layer
 
-| Endpoint | Method | Status | Dependencies |
-|----------|--------|--------|--------------|
-| `/health` | GET | **Live** | None |
-| `/api/analyze` | POST | **Live** | Scoring only |
-| `/api/query` | POST | **Live** (503 if no index) | Qdrant + ingest + `MISTRAL_API_KEY` |
-| `/api/issue` | POST | **Live** (503 if unconfigured) | Qdrant + Mistral + Sybol tokens |
-
-Interactive docs: `http://localhost:8000/docs`
-
-Startup behaviour: if Qdrant is unavailable, the app still starts; `/api/analyze` works, but `/api/query` and `/api/issue` return 503 until the index is available.
+| Endpoint | Status | Dependencies |
+|----------|--------|--------------|
+| `GET /health` | Live | None |
+| `POST /api/analyze` | Live | Scoring only |
+| `POST /api/query` | Live (503 if no index) | Qdrant + PDFs + Mistral |
+| `POST /api/issue` | Live (503 if unconfigured) | Qdrant + Mistral + Sybol tokens |
 
 ---
 
-### 5. Infrastructure and deployment
+### 5. Infrastructure
 
-| Item | Status | Details |
-|------|--------|---------|
-| `railway.toml` | Done | Uvicorn start command, `/health` check |
-| GitHub Actions CI (`.github/workflows/ci.yml`) | Done | Lint, format, mypy, pytest on `devel` PRs/pushes |
-| Poetry + dev dependencies | Done | pytest, ruff, black, mypy, coverage |
-| OpenAPI export script | Done | `scripts/export_openapi.py` |
-| Railway Qdrant service | Unknown | Documented; needs persistent volume at `/qdrant/storage` |
-| Production env vars on Railway | Partial | `QDRANT_URL` in example; Sybol tokens TBD |
-| Auto-deploy from `main` | Documented | Requires Railway ↔ GitHub connection |
+| Item | Status |
+|------|--------|
+| GitHub Actions CI on `main` | Done |
+| `railway.toml` + Dockerfile | Done |
+| Railway prod env (Qdrant, Sybol, Mistral) | Partial |
+| Demo readiness script | `./scripts/check_demo_readiness.sh` |
 
 ---
 
-## Testing and QA status
+## Testing and QA
 
-### Automated tests (done)
+### Automated tests
 
 | Metric | Value |
 |--------|-------|
-| Total tests | **93** (84 unit + 9 integration) |
-| Coverage | **~90%** (threshold: 80%) |
-| Framework | pytest + pytest-cov + pytest-mock + pytest-asyncio |
-| External mocks | Qdrant, Mistral, Sybol, deepfake model in `conftest.py` |
+| Total tests | **122** |
+| Coverage | **~90%** (threshold 80%) |
+| Golden regression | **67/67 pass** (TC-001, TC-002) |
 
-**Test layout:**
+### Test cases (TC-001–006)
 
-```
-tests/
-├── conftest.py
-├── unit/          # 20 test files — scoring, RAG, API, credentials
-└── integration/   # scoring pipeline, RAG pipeline, VC pipeline
-```
+| TC | Description | Status |
+|----|-------------|--------|
+| TC-001 | Authentic → 0.8–1.0, compliant | **Pass** (automated) |
+| TC-002 | AI → 0.0–0.3, non-compliant | **Pass** (automated) |
+| TC-003 | Edited → 0.3–0.7, review | **Blocked** — no edited images in manifest |
+| TC-004 | Corrupted file → clean error | Partial (unit tests) |
+| TC-005 | RAG query → valid refs | **Blocked** — no PDFs / Qdrant |
+| TC-006 | VC valid schema | **Pass** (`test_vc_schema.py`) |
 
-### QA deliverables (not done)
+### QA deliverables still open
 
-| Item | Owner | Status |
-|------|-------|--------|
-| Golden image dataset (`authentic/`, `ai_generated/`, `edited/`, `corrupted/`) | Youssef | Not started — README only |
-| TC-001: authentic → compliant (0.8–1.0) | Saba + Youssef | Not implemented |
-| TC-002: AI-generated → non-compliant (0.0–0.3) | Saba + Youssef | Not implemented |
-| TC-003: edited → review (0.3–0.7) | Saba + Youssef | Not implemented |
-| TC-004: corrupted file → clean error | Saba + Youssef | Not implemented |
-| TC-005: RAG query → valid regulation refs | Saba + Youssef | Not implemented |
-| TC-006: VC → valid schema, all fields | Saba | Not implemented |
-| `tests/e2e/` full workflow tests | Saba | Not created |
-| jsonschema VC validation tests | Saba | Dependency installed, no tests |
-| hypothesis property-based scoring tests | Saba | Dependency installed, no tests |
-| RAG evaluation (precision ≥ 80%, recall ≥ 75%, hallucination ≤ 5%) | Youssef | Not run |
-| QA log (Section 3.5 of project doc) | Youssef | Not started |
+- Edited + corrupted images (Youssef)
+- RAG metrics run (Youssef + Saba)
+- `tests/e2e/` full workflow (Saba)
+- QA log (Section 3.5 of scope doc)
+
+See [qa/test_cases/README_Saba.md](../qa/test_cases/README_Saba.md).
 
 ---
 
-## Research and documentation status
+## Sybol integration blockers (develop)
+
+Verified 20 Jun 2026 (Cloudflare off — same results):
+
+| Check | Result |
+|-------|--------|
+| `api.develop.wallet.sybol.id` | Resolves; catalog **200** |
+| `app.develop.wallet.sybol.id` | **DNS does not resolve** |
+| `POST /auth/login` | **404** |
+| `POST /api/bl/auth/login` | **401** (`info@ie.id`) |
+| Media compliance catalog entry | **Missing** |
+
+**Owner:** Pelayo / Iñigo — wallet URL, account provisioning, `documentId`, `issuerKey`.
+
+See [docs/DEMO_RUNBOOK.md](./DEMO_RUNBOOK.md) and [sybol_docs/openapi-wallet.yaml](../sybol_docs/openapi-wallet.yaml).
+
+---
+
+## Research and documentation
 
 | Item | Owner | Status |
 |------|-------|--------|
-| `docs/architecture.md` | Javier | **Missing** |
-| `docs/vc_schema.md` | Javier | **Missing** |
-| `paper/draft.md` | Team | **Missing** |
-| Paper Chapter 3 — Regulatory Landscape | Maxim | Not started |
-| Paper Chapter 1 — Introduction | Jana | Not started |
-| Paper Chapter 4 — System Design | Jana | Blocked on `architecture.md` |
-| Paper Chapter 5 — Evaluation | Saba + Youssef | Blocked on TC execution |
-| DPIA documentation | Maxim | Not started |
-| Project change log (Tab 4) | Team | Essentially empty |
-| Demo walkthrough script and slides | Jana | Not started |
+| [Architecture.md](../Architecture.md) | Javier | Done |
+| [docs/DEMO_RUNBOOK.md](./DEMO_RUNBOOK.md) | Javier | Done |
+| [qa/test_cases/README_Saba.md](../qa/test_cases/README_Saba.md) | Javier / Saba | Done |
+| `docs/vc_schema.md` | Javier | Missing |
+| `paper/draft.md` | Team | Not started |
+| Demo script + slides | Jana | Not started |
+| DPIA | Maxim | Not started |
 
 ---
 
 ## Environment variables
 
-Copy `src/.env.example` to `src/.env`:
+Copy `src/.env.example` → `src/.env` (never commit).
 
-| Variable | Required for | Current status |
-|----------|--------------|----------------|
-| `MISTRAL_API_KEY` | `/api/query`, `/api/issue` (RAG step) | Placeholder in example |
-| `QDRANT_URL` | `/api/query`, `/api/issue` | Example points to Railway internal URL |
-| `QDRANT_API_KEY` | Qdrant auth (optional locally) | Example value present |
-| `SYBOL_API_URL` | `/api/issue` | Set to `https://api.sybol.io/api/bl/credentials` |
-| `SYBOL_ACCESS_TOKEN` | `/api/issue` | **`TBD_pending_darius_confirmation_with_inigo`** |
-| `SYBOL_ID_TOKEN` | `/api/issue` | **`TBD_pending_darius_confirmation_with_inigo`** |
-| `SYBOL_REQUEST_TIMEOUT` | `/api/issue` | Default `10.0` |
+| Variable | Required for |
+|----------|--------------|
+| `MISTRAL_API_KEY` | `/api/query`, `/api/issue` |
+| `QDRANT_URL` | `/api/query`, `/api/issue` |
+| `SYBOL_API_BASE_URL` | Sybol client (default: develop API) |
+| `SYBOL_ACCESS_TOKEN`, `SYBOL_ID_TOKEN` | `/api/issue` signing |
+| `SYBOL_DOCUMENT_ID`, `SYBOL_ISSUER_KEY` | Catalog issuance |
 
 ---
 
-## Blockers and dependencies
-
-### Critical path
-
-```
-Maxim adds PDFs → Alex/Darius runs ingest → Javier scoring + VC ready
-                                                      ↓
-                              Iñigo confirms Sybol endpoint + tokens (Darius)
-                                                      ↓
-                              End-to-end /api/issue demo → QA validation → paper
-```
-
-### Blocker 1 — Sybol signing (highest priority)
-
-**Owner:** Darius → Iñigo (`inigo@sybol.id`)
-
-Open questions (from `src/credentials/README_Darius.md`):
-
-1. Issuer DID value (or confirmation it is resolved from tenant auth context)
-2. `MEDIA_COMPLIANCE_CREDENTIAL` registered in Sybol catalog
-3. Signing endpoint confirmation (`POST /api/bl/credentials` vs alternative)
-4. Valid Cognito `access_token` and `id_token` for integration testing
-
-Until resolved, `/api/issue` returns **503** with message: *"Sybol signing is not configured"*.
-
-### Blocker 2 — Regulation PDFs
-
-**Owner:** Maxim
-
-Without PDFs, ingest fails with `FileNotFoundError: No regulation PDFs found` and RAG cannot run in production.
-
-### Blocker 3 — Golden dataset
-
-**Owner:** Youssef
-
-Without labeled images, scoring accuracy cannot be validated and provenance signal has no reference index.
-
----
-
-## Acceptance criteria gap analysis
-
-From the project scope (`docs/AI Lab Summer Work.md`) and QA READMEs:
+## Acceptance criteria
 
 | Criterion | Target | Measured? |
 |-----------|--------|-----------|
-| RAG Precision | ≥ 80% | No |
-| RAG Recall | ≥ 75% | No |
-| Hallucination Rate | ≤ 5% | No |
-| Scoring Accuracy | ≥ 85% | No |
-| False Positive Rate | ≤ 10% | No |
-| False Negative Rate | ≤ 10% | No |
-| VC Schema Validation Pass Rate | 100% | No |
-| VC Issuance Success Rate | ≥ 95% | No (blocked on Sybol) |
 | Test coverage | ≥ 80% | **Yes — ~90%** |
+| Scoring accuracy (golden) | ≥ 85% | **Yes — 100%** on current set |
+| FPR / FNR | ≤ 10% | **Yes** on golden regression |
+| VC schema pass rate | 100% | **Yes** |
+| VC issuance success | ≥ 95% | No (Sybol blocked) |
+| RAG precision / recall | ≥ 80% / ≥ 75% | No |
+| Hallucination rate | ≤ 5% | No |
 
 ---
 
-## What works today (verification steps)
-
-### Scoring only (no external services)
+## What works today
 
 ```bash
 poetry install --with dev
-PYTHONPATH=src poetry run uvicorn api.main:app --reload --host 127.0.0.1 --port 8000
+PYTHONPATH=src pytest tests/unit tests/integration -q
+./scripts/check_demo_readiness.sh
+PYTHONPATH=src uvicorn api.main:app --reload --port 8000
 ```
 
 ```bash
 curl -X POST http://localhost:8000/api/analyze \
-  -F "file=@/path/to/image.png"
+  -F "file=@qa/test_cases/golden/authentic/ar_1.JPG"
 ```
 
-### Automated test suite
+Full pipeline (when unblocked):
 
-```bash
-poetry run pytest tests/unit/ --cov=src --cov-fail-under=80
-poetry run pytest tests/integration/
-```
-
-### Full pipeline (when dependencies are ready)
-
-1. Start Qdrant: `docker run -p 6333:6333 qdrant/qdrant`
-2. Add regulation PDFs to `research/regulations/`
-3. Ingest: `PYTHONPATH=src poetry run python -m scripts.ingest`
-4. Set `MISTRAL_API_KEY` and Sybol tokens in `src/.env`
-5. Call `POST /api/issue` with an image file
+1. `docker run -p 6333:6333 qdrant/qdrant`
+2. Add PDFs → `PYTHONPATH=src python3 -m scripts.ingest`
+3. Set Sybol tokens in `src/.env`
+4. `POST /api/issue`
 
 ---
 
-## Recommended priority (before 25 June)
-
-### Week of 14 June — must-have for demo
-
-| # | Action | Owner | Unblocks |
-|---|--------|-------|----------|
-| 1 | Contact Iñigo for Sybol tokens + endpoint + catalog confirmation | Darius | Signed VC demo |
-| 2 | Add five regulation PDFs to `research/regulations/` | Maxim | RAG + `/api/issue` |
-| 3 | Run Qdrant ingest on deployed/staging instance | Alex / Darius | Live `/api/query` |
-| 4 | Create golden dataset (5–10 images per category minimum) | Youssef | TC-001–004 |
-| 5 | Smoke-test full `/api/issue` flow once tokens arrive | Javier / Darius | Demo readiness |
-
-### Week of 18 June — presentation prep
+## Remaining work (before 25 June)
 
 | # | Action | Owner |
 |---|--------|-------|
-| 6 | Run TC-001–006 manually; log pass/fail | Saba + Youssef |
-| 7 | Write `docs/architecture.md` and `docs/vc_schema.md` | Javier |
-| 8 | Draft paper chapters (Maxim Ch.3, Jana Ch.1/4) | Maxim, Jana |
-| 9 | Prepare demo script with curated test images | Jana |
-| 10 | Validate RAG citations against source PDFs | Maxim |
-
-### Stretch (if time allows)
-
-- Implement Platt scaling with calibrated `platt_params.json`
-- Add VC 2.0 fields (`validFrom`, `credentialSchema`, `credentialStatus`) once Sybol confirms
-- Automate TC-001–006 and jsonschema validation
-- Build RAG evaluation harness with ragas/deepeval
-- Complete DPIA documentation
-
----
-
-## Repository map (implementation)
-
-```
-src/
-├── api/                  # FastAPI app, routes, schemas, dependencies
-│   └── routes/
-│       ├── analyze.py    # POST /api/analyze
-│       ├── query.py      # POST /api/query
-│       └── issue.py      # POST /api/issue
-├── scoring/              # Media authenticity pipeline
-├── rag/                  # Regulation ingest, index, query
-├── credentials/          # VC builder, Sybol client, audit trail
-└── scripts/
-    ├── ingest.py         # One-off PDF → Qdrant ingest
-    └── export_openapi.py
-
-tests/                    # 93 automated tests
-qa/test_cases/            # README stubs only — no image data yet
-research/regulations/     # README only — no PDFs yet
-paper/                    # README stubs only — no draft yet
-docs/                     # Project scope doc + this status file
-sybol_docs/               # Sybol platform reference documentation (not part of engine code)
-```
+| 1 | Unblock Sybol develop (email sent to Pelayo) | Javier → Pelayo/Iñigo |
+| 2 | Add 5 regulation PDFs + ingest | Maxim → Alex |
+| 3 | Add edited images to golden set | Youssef |
+| 4 | Run QA suite on `main`; write QA log | Saba |
+| 5 | Demo script + slides (analyze-first narrative) | Jana |
+| 6 | Paper draft + chapters | Team |
+| 7 | Smoke `/api/issue` once Sybol responds | Javier / Darius |
+| 8 | Railway prod env vars | Darius |
 
 ---
 
@@ -438,25 +272,26 @@ sybol_docs/               # Sybol platform reference documentation (not part of 
 
 | Workstream | Progress | Blocker |
 |------------|----------|---------|
-| Scoring engine | ████████░░ 85% | Golden dataset + Platt calibration |
-| RAG engine | ███████░░░ 70% | Regulation PDFs + legal review |
-| VC issuance | ██████░░░░ 60% | Sybol tokens + catalog fields |
-| API & deployment | ████████░░ 85% | Production env configuration |
-| Automated testing | █████████░ 90% | E2E + acceptance tests |
-| QA validation | ██░░░░░░░░ 15% | Dataset + TC execution |
+| Scoring engine | █████████░ 95% | Edited images; production reference corpus |
+| RAG engine | ███████░░░ 70% | PDFs + legal review |
+| VC issuance | ██████░░░░ 65% | Sybol tokens + catalog |
+| API & deployment | ████████░░ 85% | Prod env + ingest |
+| Automated testing | █████████░ 95% | E2E tests |
+| QA validation | ██████░░░░ 60% | TC-003–005, QA log |
 | Research paper | ░░░░░░░░░░ 0% | All chapters |
-| Demo readiness | ████░░░░░░ 40% | Sybol + data + script |
+| Demo readiness | ██████░░░░ 55% | Sybol + RAG + script |
 
 ---
 
 ## References
 
-- [README.md](../README.md) — setup and run instructions
-- [docs/AI Lab Summer Work.md](./AI%20Lab%20Summer%20Work.md) — full scope, task split, dependency chain
-- [src/credentials/README_Darius.md](../src/credentials/README_Darius.md) — Sybol integration notes
-- [research/regulations/README_Maxim.md](../research/regulations/README_Maxim.md) — required PDF list
-- [qa/test_cases/README_Saba.md](../qa/test_cases/README_Saba.md) — test case definitions
-- [qa/test_cases/README_Youssef.md](../qa/test_cases/README_Youssef.md) — dataset requirements
+- [README.md](../README.md)
+- [docs/AI Lab Summer Work.md](./AI%20Lab%20Summer%20Work.md)
+- [Architecture.md](../Architecture.md)
+- [docs/DEMO_RUNBOOK.md](./DEMO_RUNBOOK.md)
+- [qa/test_cases/README_Saba.md](../qa/test_cases/README_Saba.md)
+- [src/credentials/README_Darius.md](../src/credentials/README_Darius.md)
+- [research/regulations/README_Maxim.md](../research/regulations/README_Maxim.md)
 
 ---
 
