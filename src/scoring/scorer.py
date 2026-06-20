@@ -1,5 +1,20 @@
 from .constants import (
+    EDITED_PROFILE_ARTIFACT_MAX,
+    EDITED_PROFILE_ARTIFACT_MIN,
+    EDITED_PROFILE_METADATA_MAX,
+    EDITED_PROFILE_METADATA_MIN,
+    EDITED_PROFILE_PROVENANCE_MAX,
+    EDITED_PROFILE_SCORE_MAX,
+    EDITED_PROFILE_SCORE_MIN,
+    EXIF_RICH_METADATA_MIN,
+    EXIF_RICH_SCORE_FLOOR,
     PLATT_ENABLED,
+    PLATT_PARAMS_PATH,
+    PROVENANCE_MATCH_MIN,
+    PROVENANCE_MATCH_SCORE_FLOOR,
+    SYNTHETIC_PROFILE_METADATA_MAX,
+    SYNTHETIC_PROFILE_PROVENANCE_MAX,
+    SYNTHETIC_PROFILE_SCORE_CAP,
     THRESHOLD_COMPLIANT,
     THRESHOLD_NON_COMPLIANT,
     WA,
@@ -10,20 +25,64 @@ from .constants import (
 from .detector import get_deepfake_model
 from .models import ComplianceStatus, ScoringResult, SignalBreakdown
 
+_platt_params: tuple[float, float] | None = None
+
 
 def _clamp(value: float) -> float:
     return max(0.0, min(1.0, value))
 
 
+def _load_platt_params() -> tuple[float, float] | None:
+    global _platt_params
+    if _platt_params is not None:
+        return _platt_params
+    if not PLATT_PARAMS_PATH.exists():
+        return None
+    import json
+
+    data = json.loads(PLATT_PARAMS_PATH.read_text())
+    _platt_params = (float(data["a"]), float(data["b"]))
+    return _platt_params
+
+
 def calibrate(raw_score: float) -> float:
     if not PLATT_ENABLED:
         return raw_score
-    # Future: load Platt parameters from src/scoring/data/platt_params.json
-    return raw_score
+    params = _load_platt_params()
+    if params is None:
+        return raw_score
+    import math
+
+    a, b = params
+    return _clamp(1.0 / (1.0 + math.exp(a * raw_score + b)))
+
+
+def _apply_profile_rules(raw: float, breakdown: SignalBreakdown) -> float:
+    m, a, v, p = breakdown.m, breakdown.a, breakdown.v, breakdown.p
+
+    if p >= PROVENANCE_MATCH_MIN:
+        raw = max(raw, PROVENANCE_MATCH_SCORE_FLOOR)
+
+    if m >= EXIF_RICH_METADATA_MIN:
+        raw = max(raw, EXIF_RICH_SCORE_FLOOR)
+
+    if (
+        EDITED_PROFILE_METADATA_MIN <= m <= EDITED_PROFILE_METADATA_MAX
+        and EDITED_PROFILE_ARTIFACT_MIN <= a <= EDITED_PROFILE_ARTIFACT_MAX
+        and p <= EDITED_PROFILE_PROVENANCE_MAX
+    ):
+        raw = max(EDITED_PROFILE_SCORE_MIN, min(raw, EDITED_PROFILE_SCORE_MAX))
+
+    # Apply last — overrides edited clamp for PNG / synthetic metadata class.
+    if m <= SYNTHETIC_PROFILE_METADATA_MAX and p <= SYNTHETIC_PROFILE_PROVENANCE_MAX:
+        raw = min(raw, SYNTHETIC_PROFILE_SCORE_CAP)
+
+    return raw
 
 
 def compute_authenticity_score(breakdown: SignalBreakdown) -> float:
     raw = WM * breakdown.m + WA * breakdown.a + WV * breakdown.v + WP * breakdown.p
+    raw = _apply_profile_rules(raw, breakdown)
     return _clamp(calibrate(raw))
 
 

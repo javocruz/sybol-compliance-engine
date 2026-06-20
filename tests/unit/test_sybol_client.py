@@ -4,200 +4,131 @@ import httpx
 import pytest
 
 from src.credentials.sybol_client import (
+    DEFAULT_API_BASE_URL,
     SybolClient,
     SybolNotConfiguredError,
     SybolSigningError,
 )
 
-VALID_URL = "https://api.sybol.io/api/bl/credentials"
-VALID_ACCESS_TOKEN = "access-token-abc"
-VALID_ID_TOKEN = "id-token-xyz"
+VALID_ACCESS = "access-token-abc"
+VALID_ID = "id-token-xyz"
+DOC_ID = "catalog-doc-uuid"
+ISSUER_KEY = "kms-key-1"
 
-UNSIGNED_PAYLOAD = {
-    "@context": ["https://www.w3.org/2018/credentials/v1"],
-    "id": "urn:uuid:abc",
-    "type": ["VerifiableCredential", "MediaComplianceCredential"],
-    "issuanceDate": "2026-06-14T12:00:00Z",
-    "credentialSubject": {"id": "urn:media:deadbeef"},
+ISSUE_REQUEST = {
+    "documentId": DOC_ID,
+    "issuerKey": ISSUER_KEY,
+    "subject": "urn:media:abc123",
+    "claims": [{"key": "mediaHash", "value": "abc123"}],
+    "format": "w3c-vc",
 }
-SIGNED_VC = {
-    **UNSIGNED_PAYLOAD,
-    "issuer": "did:sybol:tenant123:issuer",
-    "proof": {
-        "type": "EcdsaSecp256k1Signature2019",
-        "jws": "abc123",
-    },
+
+SIGNED_CREDENTIAL = {
+    "id": "credential-jti",
+    "signed_token": "eyJhbGciOiJFUzI1NiJ9...",
+    "status": "issued",
+    "issuer": "did:web:sybol.id",
 }
-SUCCESS_ENVELOPE = {"success": True, "data": SIGNED_VC}
 
 
-def _client(
-    url=VALID_URL,
-    access_token=VALID_ACCESS_TOKEN,
-    id_token=VALID_ID_TOKEN,
-    timeout=5.0,
-):
-    return SybolClient(
-        api_url=url,
-        access_token=access_token,
-        id_token=id_token,
-        timeout=timeout,
-    )
+def _client(**kwargs):
+    defaults = {
+        "api_base_url": DEFAULT_API_BASE_URL,
+        "access_token": VALID_ACCESS,
+        "id_token": VALID_ID,
+        "document_id": DOC_ID,
+        "issuer_key": ISSUER_KEY,
+    }
+    defaults.update(kwargs)
+    return SybolClient(**defaults)
 
 
-# --- is_configured ---
-
-
-def test_is_configured_true_when_all_set():
+def test_is_configured_with_tokens_and_catalog():
     assert _client().is_configured is True
 
 
-def test_not_configured_when_url_missing():
-    assert _client(url=None).is_configured is False
+def test_not_configured_without_document_id():
+    assert _client(document_id=None).is_configured is False
 
 
-def test_not_configured_when_access_token_missing():
-    assert _client(access_token=None).is_configured is False
+def test_not_configured_without_issuer_key():
+    assert _client(issuer_key=None).is_configured is False
 
 
-def test_not_configured_when_id_token_missing():
-    assert _client(id_token=None).is_configured is False
+def test_not_configured_without_auth():
+    assert _client(access_token=None, id_token=None, email=None, password=None).is_configured is False
 
 
-def test_not_configured_when_url_is_tbd_placeholder():
-    assert (
-        _client(url="TBD_pending_darius_confirmation_with_inigo").is_configured is False
-    )
+def test_configured_with_email_password_and_catalog():
+    assert _client(
+        access_token=None,
+        id_token=None,
+        email="user@ie.id",
+        password="secret",
+    ).is_configured is True
 
 
-def test_not_configured_when_access_token_is_tbd_placeholder():
-    assert (
-        _client(access_token="TBD_pending_darius_confirmation_with_inigo").is_configured
-        is False
-    )
-
-
-def test_not_configured_when_id_token_is_tbd_placeholder():
-    assert (
-        _client(id_token="TBD_pending_darius_confirmation_with_inigo").is_configured
-        is False
-    )
-
-
-# --- sign_credential: not configured ---
-
-
-def test_sign_raises_not_configured_when_url_missing():
-    client = _client(url=None)
-    with pytest.raises(SybolNotConfiguredError):
-        client.sign_credential(UNSIGNED_PAYLOAD)
-
-
-# --- sign_credential: success ---
-
-
-def test_sign_returns_signed_vc_on_success():
-    mock_response = MagicMock()
-    mock_response.is_success = True
-    mock_response.json.return_value = SUCCESS_ENVELOPE
-
-    with patch(
-        "src.credentials.sybol_client.httpx.post", return_value=mock_response
-    ) as mock_post:
-        result = _client().sign_credential(UNSIGNED_PAYLOAD)
-
-    assert result["proof"]["type"] == "EcdsaSecp256k1Signature2019"
-    call_kwargs = mock_post.call_args
-    assert call_kwargs.kwargs["json"] == UNSIGNED_PAYLOAD
-    headers = call_kwargs.kwargs["headers"]
-    assert headers["Authorization"] == f"Bearer {VALID_ACCESS_TOKEN}"
-    assert headers["x-id-token"] == VALID_ID_TOKEN
-
-
-# --- sign_credential: HTTP errors ---
-
-
-def test_sign_raises_on_non_2xx():
-    mock_response = MagicMock()
-    mock_response.is_success = False
-    mock_response.status_code = 422
-    mock_response.text = "Unprocessable entity"
-    mock_response.json.return_value = {
-        "success": False,
-        "error": "INVALID_CREDENTIAL_FORMAT",
-        "message": "Credential format does not conform to W3C spec",
-    }
-
-    with patch("src.credentials.sybol_client.httpx.post", return_value=mock_response):
-        with pytest.raises(SybolSigningError, match="422"):
-            _client().sign_credential(UNSIGNED_PAYLOAD)
-
-
-def test_sign_raises_on_success_false_envelope():
-    mock_response = MagicMock()
-    mock_response.is_success = True
-    mock_response.text = ""
-    mock_response.json.return_value = {
-        "success": False,
-        "error": "INVALID_CREDENTIAL_FORMAT",
-        "message": "Missing required field",
-    }
-
-    with patch("src.credentials.sybol_client.httpx.post", return_value=mock_response):
-        with pytest.raises(SybolSigningError, match="Missing required field"):
-            _client().sign_credential(UNSIGNED_PAYLOAD)
-
-
-def test_sign_raises_on_timeout():
-    with patch(
-        "src.credentials.sybol_client.httpx.post",
-        side_effect=httpx.TimeoutException("timed out"),
-    ):
-        with pytest.raises(SybolSigningError, match="timed out"):
-            _client().sign_credential(UNSIGNED_PAYLOAD)
-
-
-def test_sign_raises_on_transport_error():
-    with patch(
-        "src.credentials.sybol_client.httpx.post",
-        side_effect=httpx.TransportError("connection refused"),
-    ):
-        with pytest.raises(SybolSigningError, match="transport"):
-            _client().sign_credential(UNSIGNED_PAYLOAD)
-
-
-# --- sign_credential: response validation ---
-
-
-def test_sign_raises_when_data_missing():
-    mock_response = MagicMock()
-    mock_response.is_success = True
-    mock_response.json.return_value = {"success": True}
-
-    with patch("src.credentials.sybol_client.httpx.post", return_value=mock_response):
-        with pytest.raises(SybolSigningError, match="data"):
-            _client().sign_credential(UNSIGNED_PAYLOAD)
-
-
-def test_sign_raises_when_proof_missing():
+def test_login_stores_tokens():
+    client = _client(access_token=None, id_token=None, email="user@ie.id", password="secret")
     mock_response = MagicMock()
     mock_response.is_success = True
     mock_response.json.return_value = {
         "success": True,
-        "data": {"id": "urn:uuid:abc"},
+        "data": {
+            "accessToken": VALID_ACCESS,
+            "idToken": VALID_ID,
+            "refreshToken": "refresh",
+        },
     }
 
-    with patch("src.credentials.sybol_client.httpx.post", return_value=mock_response):
-        with pytest.raises(SybolSigningError, match="proof"):
-            _client().sign_credential(UNSIGNED_PAYLOAD)
+    with patch("httpx.post", return_value=mock_response) as post:
+        data = client.login()
+
+    assert data["accessToken"] == VALID_ACCESS
+    assert client._access_token == VALID_ACCESS
+    assert client._id_token == VALID_ID
+    post.assert_called_once()
+    assert post.call_args[0][0].endswith("/auth/login")
 
 
-def test_sign_raises_on_non_json_response():
+def test_issue_credential_success():
+    client = _client()
     mock_response = MagicMock()
     mock_response.is_success = True
-    mock_response.json.side_effect = ValueError("not JSON")
-    mock_response.text = "<html>error</html>"
+    mock_response.json.return_value = {"success": True, "data": SIGNED_CREDENTIAL}
 
-    with patch("src.credentials.sybol_client.httpx.post", return_value=mock_response):
-        with pytest.raises(SybolSigningError, match="non-JSON"):
-            _client().sign_credential(UNSIGNED_PAYLOAD)
+    with patch("httpx.request", return_value=mock_response):
+        result = client.issue_credential(ISSUE_REQUEST)
+
+    assert result["signed_token"] == SIGNED_CREDENTIAL["signed_token"]
+
+
+def test_issue_raises_on_missing_signed_token():
+    client = _client()
+    mock_response = MagicMock()
+    mock_response.is_success = True
+    mock_response.json.return_value = {"success": True, "data": {"id": "x"}}
+
+    with patch("httpx.request", return_value=mock_response):
+        with pytest.raises(SybolSigningError, match="signed credential"):
+            client.issue_credential(ISSUE_REQUEST)
+
+
+def test_issue_raises_on_api_error():
+    client = _client()
+    mock_response = MagicMock()
+    mock_response.is_success = False
+    mock_response.status_code = 422
+    mock_response.text = "validation failed"
+    mock_response.json.return_value = {"success": False, "message": "invalid claims"}
+
+    with patch("httpx.request", return_value=mock_response):
+        with pytest.raises(SybolSigningError, match="422"):
+            client.issue_credential(ISSUE_REQUEST)
+
+
+def test_login_timeout():
+    client = _client(access_token=None, id_token=None, email="a@b.com", password="x")
+    with patch("httpx.post", side_effect=httpx.TimeoutException("timeout")):
+        with pytest.raises(SybolSigningError, match="timed out"):
+            client.login()

@@ -84,24 +84,22 @@ def mock_settings():
     return Settings(
         qdrant_url="http://localhost:6333",
         qdrant_audit_collection="media_audit",
-        sybol_api_url=None,
-        sybol_access_token=None,
-        sybol_id_token=None,
+        sybol_document_id="doc-uuid",
+        sybol_issuer_key="kms-key",
     )
 
 
 SIGNED_VC = {
-    "id": "urn:uuid:abc",
-    "type": ["VerifiableCredential", "MediaComplianceCredential"],
+    "id": "credential-jti",
+    "signed_token": "eyJhbGciOiJFUzI1NiJ9...",
     "issuer": "did:sybol:tenant123:issuer",
-    "proof": {"type": "EcdsaSecp256k1Signature2019", "jws": "sig123"},
 }
 
 
 def _configured_sybol_client():
     client = MagicMock(spec=SybolClient)
     client.is_configured = True
-    client.sign_credential.return_value = SIGNED_VC
+    client.issue_credential.return_value = SIGNED_VC
     return client
 
 
@@ -199,7 +197,7 @@ def test_returns_signed_vc_on_success(
         body = response.json()
         assert body["status"] == "signed_vc_issued"
         assert body["signed"] is True
-        assert body["signed_vc"]["proof"]["jws"] == "sig123"
+        assert body["signed_vc"]["signed_token"].startswith("eyJ")
         assert body["vc_payload"] is not None
     finally:
         app.dependency_overrides.clear()
@@ -216,7 +214,7 @@ def test_returns_502_when_signing_fails(
 ):
     sybol = MagicMock(spec=SybolClient)
     sybol.is_configured = True
-    sybol.sign_credential.side_effect = SybolSigningError(
+    sybol.issue_credential.side_effect = SybolSigningError(
         "Sybol API returned 500: internal error"
     )
 

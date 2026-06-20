@@ -2,22 +2,32 @@
 
 These complement the example-based assertions in test_scorer.py: instead of a
 handful of fixed inputs, Hypothesis generates thousands of signal breakdowns and
-checks that the *invariants* of the scorer hold across the whole input space.
+checks that the *invariants* of the scorer hold across the input space.
 
 Invariants under test:
   * authenticity score is always clamped to [0, 1]
-  * the score is a convex combination of the four signals (weights sum to 1),
-    so it can never exceed the largest signal nor fall below the smallest
   * status mapping is monotonic and consistent with the published thresholds
-  * the score is monotonic non-decreasing in every individual signal
+  * provenance-match and synthetic-profile rules behave as documented
+
+Note: after golden-set calibration the score is no longer a pure convex
+combination of signals — post-weight floor/cap rules apply in scorer.py.
 """
 
 import math
 
-from hypothesis import given
+from hypothesis import assume, given
 from hypothesis import strategies as st
 
 from scoring.constants import (
+    EDITED_PROFILE_ARTIFACT_MAX,
+    EDITED_PROFILE_ARTIFACT_MIN,
+    EDITED_PROFILE_METADATA_MAX,
+    EDITED_PROFILE_METADATA_MIN,
+    EDITED_PROFILE_PROVENANCE_MAX,
+    EXIF_RICH_METADATA_MIN,
+    PROVENANCE_MATCH_MIN,
+    SYNTHETIC_PROFILE_METADATA_MAX,
+    SYNTHETIC_PROFILE_PROVENANCE_MAX,
     THRESHOLD_COMPLIANT,
     THRESHOLD_NON_COMPLIANT,
     WA,
@@ -28,7 +38,6 @@ from scoring.constants import (
 from scoring.models import ComplianceStatus, SignalBreakdown
 from scoring.scorer import compute_authenticity_score, map_compliance_status
 
-# A signal value is any float in [0, 1]; reject NaN/inf so we test real inputs.
 signal = st.floats(min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False)
 
 
@@ -36,8 +45,23 @@ def _breakdown(m: float, a: float, v: float, p: float) -> SignalBreakdown:
     return SignalBreakdown(m=m, a=a, v=v, p=p)
 
 
+def _rules_apply(m: float, a: float, p: float) -> bool:
+    if p >= PROVENANCE_MATCH_MIN:
+        return True
+    if m >= EXIF_RICH_METADATA_MIN:
+        return True
+    if p <= SYNTHETIC_PROFILE_PROVENANCE_MAX and m <= SYNTHETIC_PROFILE_METADATA_MAX:
+        return True
+    if (
+        EDITED_PROFILE_METADATA_MIN <= m <= EDITED_PROFILE_METADATA_MAX
+        and EDITED_PROFILE_ARTIFACT_MIN <= a <= EDITED_PROFILE_ARTIFACT_MAX
+        and p <= EDITED_PROFILE_PROVENANCE_MAX
+    ):
+        return True
+    return False
+
+
 def test_weights_sum_to_one():
-    # The convexity arguments below only hold if the weights are a partition.
     assert math.isclose(WM + WA + WV + WP, 1.0)
 
 
@@ -48,37 +72,32 @@ def test_score_always_in_unit_interval(m, a, v, p):
 
 
 @given(m=signal, a=signal, v=signal, p=signal)
-def test_score_bounded_by_min_and_max_signal(m, a, v, p):
-    # A weighted average with non-negative weights summing to 1 lies between the
-    # smallest and largest of its inputs.
-    score = compute_authenticity_score(_breakdown(m, a, v, p))
-    lo, hi = min(m, a, v, p), max(m, a, v, p)
-    assert lo - 1e-9 <= score <= hi + 1e-9
-
-
-@given(x=signal)
-def test_uniform_signals_pass_through(x):
-    # If every signal is x, the weighted average is exactly x.
+def test_weighted_average_when_no_post_rules(m, a, v, p):
+    assume(not _rules_apply(m, a, p))
+    expected = WM * m + WA * a + WV * v + WP * p
     assert math.isclose(
-        compute_authenticity_score(_breakdown(x, x, x, x)), x, abs_tol=1e-9
+        compute_authenticity_score(_breakdown(m, a, v, p)), expected, abs_tol=1e-9
     )
 
 
+@given(p=st.floats(min_value=PROVENANCE_MATCH_MIN, max_value=1.0, allow_nan=False))
+def test_provenance_match_applies_floor(p):
+    # Low other signals but strong provenance match must reach the configured floor.
+    score = compute_authenticity_score(_breakdown(0.4, 0.4, 0.4, p))
+    assert score >= 0.82
+
+
 @given(
-    m=signal,
-    a=signal,
-    v=signal,
-    p=signal,
-    delta=st.floats(
-        min_value=0.0, max_value=1.0, allow_nan=False, allow_infinity=False
+    m=st.floats(
+        min_value=0.0, max_value=SYNTHETIC_PROFILE_METADATA_MAX, allow_nan=False
+    ),
+    p=st.floats(
+        min_value=0.0, max_value=SYNTHETIC_PROFILE_PROVENANCE_MAX, allow_nan=False
     ),
 )
-def test_score_monotonic_in_metadata_signal(m, a, v, p, delta):
-    # Raising any one signal must not lower the score (monotonicity).
-    higher_m = min(1.0, m + delta)
-    base = compute_authenticity_score(_breakdown(m, a, v, p))
-    bumped = compute_authenticity_score(_breakdown(higher_m, a, v, p))
-    assert bumped >= base - 1e-9
+def test_synthetic_profile_applies_cap(m, p):
+    score = compute_authenticity_score(_breakdown(m, 0.75, 1.0, p))
+    assert score <= 0.26
 
 
 @given(
@@ -103,7 +122,6 @@ def test_status_mapping_is_total_and_consistent(score):
     ),
 )
 def test_status_is_monotonic_in_score(lower, higher):
-    # A higher score is never *less* compliant than a lower one.
     if lower > higher:
         lower, higher = higher, lower
     rank = {

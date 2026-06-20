@@ -7,13 +7,20 @@ from .constants import (
     ARTIFACT_CNN_WEIGHT,
     ARTIFACT_FFT_WEIGHT,
     ARTIFACT_NOISE_WEIGHT,
+    ARTIFACT_SYNTHETIC_FAKE_WEIGHT,
+    ARTIFACT_SYNTHETIC_FFT_WEIGHT,
+    ARTIFACT_SYNTHETIC_NOISE_WEIGHT,
 )
-from .detector import predict_authenticity_score
+from .detector import predict_authenticity_score, predict_fake_probability
 from .preprocess import PreprocessedImage
 
 
 def _clamp(value: float) -> float:
     return max(0.0, min(1.0, value))
+
+
+def _is_synthetic_format(preprocessed: PreprocessedImage) -> bool:
+    return preprocessed.content_type in ("image/png", "image/webp") and not preprocessed.exif_tags
 
 
 def _fft_score(model_image) -> float:
@@ -61,10 +68,19 @@ def _noise_residual_score(model_image) -> float:
 
 
 def score_artifacts(preprocessed: PreprocessedImage) -> float:
-    cnn_score = predict_authenticity_score(preprocessed.model_image)
     fft_score = _fft_score(preprocessed.model_image)
     noise_score = _noise_residual_score(preprocessed.model_image)
 
+    if _is_synthetic_format(preprocessed):
+        # PNG/WebP without EXIF: lean on fake probability — CNN "real" scores mislead here.
+        fake_prob = predict_fake_probability(preprocessed.model_image)
+        return _clamp(
+            ARTIFACT_SYNTHETIC_FAKE_WEIGHT * fake_prob
+            + ARTIFACT_SYNTHETIC_FFT_WEIGHT * fft_score
+            + ARTIFACT_SYNTHETIC_NOISE_WEIGHT * noise_score
+        )
+
+    cnn_score = predict_authenticity_score(preprocessed.model_image)
     combined = (
         ARTIFACT_CNN_WEIGHT * cnn_score
         + ARTIFACT_FFT_WEIGHT * fft_score

@@ -36,6 +36,11 @@ def get_deepfake_model() -> DeepfakeModel:
     return _cached_model
 
 
+def predict_fake_probability(model_image) -> float:
+    """Return synthetic-media probability in [0, 1] (1 = more likely fake/AI)."""
+    return max(0.0, min(1.0, 1.0 - predict_authenticity_score(model_image)))
+
+
 def predict_authenticity_score(model_image) -> float:
     """Return authenticity confidence in [0, 1] (1 = more likely real)."""
     bundle = get_deepfake_model()

@@ -58,4 +58,4 @@ def score_provenance(preprocessed: PreprocessedImage) -> float:
 
     if min_distance <= PHASH_MATCH_THRESHOLD:
         return max(0.0, min(1.0, 1.0 - min_distance / (PHASH_MATCH_THRESHOLD + 1)))
-    return max(0.0, min(1.0, 0.5 - min_distance / 64.0))
+    return max(0.0, min(1.0, 0.42 - min_distance / 48.0))

@@ -11,6 +11,8 @@ from .constants import (
     PNG_WEBP_NO_EXIF_SCORE,
     REQUIRED_EXIF_FIELDS,
 )
+
+
 from .preprocess import PreprocessedImage
 
 
@@ -40,7 +42,12 @@ def _required_fields_score(tags: dict[str, Any]) -> float:
     if not tags:
         return 0.0
     present = sum(1 for field in REQUIRED_EXIF_FIELDS if _exif_value(tags, field))
-    return present / len(REQUIRED_EXIF_FIELDS)
+    base = present / len(REQUIRED_EXIF_FIELDS)
+    make = _exif_value(tags, "Make")
+    model = _exif_value(tags, "Model")
+    if make and model and present >= 2:
+        return _clamp(base + 0.15)
+    return base
 
 
 def _software_score(tags: dict[str, Any]) -> float:

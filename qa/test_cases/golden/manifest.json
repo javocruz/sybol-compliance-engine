@@ -1,0 +1,270 @@
+[
+  {
+    "file": "authentic/ar16.JPG",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar17.jpg",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar18.jpg",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar19.jpg",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar20.jpg",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar21.jpg",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar22.jpg",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar23.jpg",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar24.JPG",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar25.JPG",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar26.jpg",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar27.jpg",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar28.JPG",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar30.JPG",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar31.JPG",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar_1.JPG",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar_10.JPG",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar_11.JPG",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar_12.JPG",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar_13.JPG",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar_14.JPG",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar_15.JPG",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar_2.JPG",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar_3.JPG",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar_4.JPG",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar_5.JPG",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar_6.JPG",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar_7.JPG",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar_8.JPG",
+    "label": "authentic"
+  },
+  {
+    "file": "authentic/ar_9.JPG",
+    "label": "authentic"
+  },
+  {
+    "file": "ai_generated/beach_dalle.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/beach_gemini.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/beach_sd.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/businessman_dalle.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/businessman_gemini.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/businessman_sd.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/cafe_dalle.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/cafe_gemini.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/city_dalle.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/city_gemini.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/elderly_dalle.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/elderly_gemini.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/elderly_sd.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/forest_dalle.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/forest_gemini.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/forest_sd.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/mountain_dalle.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/mountain_sd.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/moutain_gemini.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/office_dalle.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/office_gemini.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/office_sd.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/selfie_dalle.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/selfie_gemini.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/selfie_sd.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/street_dalle.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/street_gemini.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/street_st.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/student_dalle.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/student_gemini.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/student_sd.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/studentportrait_dalle.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/studentportrait_gemini.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/studentportrait_sd.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/womanwalk_dalle.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/womanwalk_gemini.png",
+    "label": "ai_generated"
+  },
+  {
+    "file": "ai_generated/womanwalk_sd.png",
+    "label": "ai_generated"
+  }
+]

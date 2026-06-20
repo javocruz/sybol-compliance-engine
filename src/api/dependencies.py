@@ -21,8 +21,11 @@ class Settings:
     qdrant_audit_collection: str = field(
         default_factory=lambda: os.getenv("QDRANT_AUDIT_COLLECTION", "media_audit")
     )
-    sybol_api_url: str | None = field(
-        default_factory=lambda: os.getenv("SYBOL_API_URL")
+    # Sybol BusinessWallet API (OpenAPI v4)
+    sybol_api_base_url: str = field(
+        default_factory=lambda: os.getenv(
+            "SYBOL_API_BASE_URL", "https://api.develop.wallet.sybol.id"
+        )
     )
     sybol_access_token: str | None = field(
         default_factory=lambda: os.getenv("SYBOL_ACCESS_TOKEN")
@@ -30,9 +33,31 @@ class Settings:
     sybol_id_token: str | None = field(
         default_factory=lambda: os.getenv("SYBOL_ID_TOKEN")
     )
-    sybol_request_timeout: float = field(
-        default_factory=lambda: float(os.getenv("SYBOL_REQUEST_TIMEOUT", "10.0"))
+    sybol_email: str | None = field(default_factory=lambda: os.getenv("SYBOL_EMAIL"))
+    sybol_password: str | None = field(
+        default_factory=lambda: os.getenv("SYBOL_PASSWORD")
     )
+    sybol_document_id: str | None = field(
+        default_factory=lambda: os.getenv("SYBOL_DOCUMENT_ID")
+    )
+    sybol_issuer_key: str | None = field(
+        default_factory=lambda: os.getenv("SYBOL_ISSUER_KEY")
+    )
+    sybol_subject_did: str | None = field(
+        default_factory=lambda: os.getenv("SYBOL_SUBJECT_DID")
+    )
+    sybol_level_of_assurance: int | None = field(
+        default_factory=lambda: _optional_int(os.getenv("SYBOL_LEVEL_OF_ASSURANCE"))
+    )
+    sybol_request_timeout: float = field(
+        default_factory=lambda: float(os.getenv("SYBOL_REQUEST_TIMEOUT", "30.0"))
+    )
+
+
+def _optional_int(value: str | None) -> int | None:
+    if value is None or value.strip() == "":
+        return None
+    return int(value)
 
 
 def get_settings() -> Settings:
@@ -49,9 +74,13 @@ def get_sybol_client(settings: Settings | None = None):
 
     settings = settings or get_settings()
     return SybolClient(
-        api_url=settings.sybol_api_url,
+        api_base_url=settings.sybol_api_base_url,
         access_token=settings.sybol_access_token,
         id_token=settings.sybol_id_token,
+        email=settings.sybol_email,
+        password=settings.sybol_password,
+        document_id=settings.sybol_document_id,
+        issuer_key=settings.sybol_issuer_key,
         timeout=settings.sybol_request_timeout,
     )
 

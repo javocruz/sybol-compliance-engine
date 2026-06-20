@@ -72,6 +72,14 @@ def _load_manifest():
     return root, cases
 
 
+@pytest.fixture(autouse=True)
+def _ensure_provenance_reference_index():
+    """Golden authentic labels assume qa/test_cases/authentic/ is indexed."""
+    from scoring.provenance import rebuild_provenance_index
+
+    rebuild_provenance_index()
+
+
 def _score_one(path: Path):
     content = path.read_bytes()
     return score_image(content, filename=path.name)

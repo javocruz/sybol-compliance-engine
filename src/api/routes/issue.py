@@ -13,6 +13,7 @@ from src.api.dependencies import (
 )
 from src.api.schemas import IssueResponse
 from src.credentials.audit import write_audit_record
+from src.credentials.catalog_issue_builder import build_catalog_issue_request
 from src.credentials.sybol_client import (
     SybolClient,
     SybolSigningError,
@@ -90,13 +91,17 @@ async def issue(
         raise HTTPException(
             503,
             detail=(
-                "Sybol signing is not configured — set SYBOL_API_URL, "
-                "SYBOL_ACCESS_TOKEN, and SYBOL_ID_TOKEN."
+                "Sybol signing is not configured — set SYBOL_DOCUMENT_ID, "
+                "SYBOL_ISSUER_KEY, and either SYBOL_ACCESS_TOKEN + SYBOL_ID_TOKEN "
+                "or SYBOL_EMAIL + SYBOL_PASSWORD."
             ),
         )
 
     try:
-        signed_vc = sybol.sign_credential(payload)
+        issue_request = build_catalog_issue_request(
+            result, rag, settings=settings, evidence_url=evidence_url
+        )
+        signed_vc = sybol.issue_credential(issue_request)
     except SybolSigningError as exc:
         raise HTTPException(502, detail=str(exc)) from exc
 

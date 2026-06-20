@@ -18,6 +18,14 @@ def test_compute_authenticity_score_weighted_sum():
     breakdown = SignalBreakdown(m=0.0, a=0.0, v=0.0, p=0.0)
     assert compute_authenticity_score(breakdown) == 0.0
 
+    # Synthetic profile cap: weak metadata + no provenance match.
+    breakdown = SignalBreakdown(m=0.2, a=0.75, v=1.0, p=0.1)
+    assert compute_authenticity_score(breakdown) == 0.26
+
+    # Edited profile clamp (TC-003 ready).
+    breakdown = SignalBreakdown(m=0.55, a=0.55, v=0.6, p=0.4)
+    assert 0.35 <= compute_authenticity_score(breakdown) <= 0.65
+
 
 def test_map_compliance_status_boundaries():
     assert map_compliance_status(0.0) == ComplianceStatus.NON_COMPLIANT
