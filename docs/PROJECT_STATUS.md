@@ -17,7 +17,7 @@ The **Compliance AI Engine** is a FastAPI service that scores media authenticity
 | Area | Status | Notes |
 |------|--------|-------|
 | Core scoring pipeline | **Done** | Four signals + profile rules; golden-set calibrated |
-| RAG compliance engine | **Code done, data missing** | Pipeline implemented; 0/5 regulation PDFs in repo |
+| RAG compliance engine | **Code done, PDFs in repo** | 5/5 regulations; Qdrant ingest pending |
 | VC payload construction | **Mostly done** | VC 1.1-style payload; some VC 2.0 fields deferred |
 | Sybol signing integration | **Scaffolded, blocked** | OpenAPI v4 client ready; develop auth + catalog pending |
 | Automated tests | **Done** | **122 tests**, ~90% coverage |
@@ -96,11 +96,11 @@ There is no standardized, machine-readable way to prove whether a piece of media
 | Item | Status |
 |------|--------|
 | Ingest, chunk, embed, Qdrant index, query pipeline | Done |
-| Regulation PDFs in repo | **Missing (0/5)** |
+| Regulation PDFs in repo | **Done (5/5)** |
 | Legal accuracy review | Not done |
 | RAG eval harness (precision/recall/hallucination) | Not done |
 
-**Required PDFs:** `eu_ai_act.pdf`, `gdpr.pdf`, `espr_dpp.pdf`, `lopdgdd.pdf`, `ley_13_2022.pdf`
+**Corpus:** `eu_ai_act`, `gdpr`, `codigo_penal`, `lopdgdd`, `ley_13_2022` (in `research/regulations/`)
 
 ---
 

@@ -22,7 +22,7 @@ if [[ -f qa/test_cases/golden/manifest.json ]]; then ok "manifest.json"; else no
 
 echo ""
 echo "=== RAG (Option F) ==="
-pdfs=(eu_ai_act gdpr espr_dpp lopdgdd ley_13_2022)
+pdfs=(eu_ai_act gdpr codigo_penal lopdgdd ley_13_2022)
 pdf_ok=0
 for p in "${pdfs[@]}"; do
   if compgen -G "research/regulations/${p}*" > /dev/null; then ((pdf_ok++)) || true; fi

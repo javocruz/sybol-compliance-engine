@@ -1,20 +1,18 @@
 # research/regulations/ — Maxim
 
-This folder holds all five regulation PDFs that feed the RAG pipeline.
-Download and place them here, named exactly as listed:
+This folder holds the five regulation PDFs that feed the RAG pipeline.
+Files must use these exact stems (`.pdf`):
 
-- eu_ai_act.pdf
-- gdpr.pdf
-- espr_dpp.pdf
-- lopdgdd.pdf
-- ley_13_2022.pdf
+| File | Source document |
+|------|-----------------|
+| `eu_ai_act.pdf` | EU AI Act (Regulation 2024/1689) |
+| `gdpr.pdf` | GDPR (Regulation 2016/679) |
+| `codigo_penal.pdf` | Código Penal (LO 10/1995) |
+| `lopdgdd.pdf` | LOPDGDD (LO 3/2018) |
+| `ley_13_2022.pdf` | Ley 13/2022 (Comunicación Audiovisual) |
 
 These must be complete, correctly versioned official documents — not
 summaries or excerpts. Alex's RAG pipeline ingests directly from this folder.
-The sooner these are here, the sooner Alex can start building.
 
-Once Alex has the pipeline running, your second job is to validate the
-RAG output for legal accuracy. Cross-check that article citations are
-correct and nothing is being hallucinated or misattributed. You are the
-legal expert on the team — this is the most important quality check
-we have before anything goes into the paper.
+Once the pipeline is running, validate RAG output for legal accuracy:
+cross-check article citations and flag hallucinations or misattributions.
