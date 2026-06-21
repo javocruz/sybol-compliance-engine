@@ -43,7 +43,7 @@ When Maxim adds these files:
 
 - `eu_ai_act.pdf`
 - `gdpr.pdf`
-- `espr_dpp.pdf`
+- `codigo_penal.pdf`
 - `lopdgdd.pdf`
 - `ley_13_2022.pdf`
 

@@ -8,7 +8,7 @@ from rag.ingest import REGULATION_NAME_MAP, chunk_documents, load_documents
 def test_regulation_name_map_contains_expected_keys():
     assert REGULATION_NAME_MAP["eu_ai_act"] == "EU AI Act"
     assert REGULATION_NAME_MAP["gdpr"] == "GDPR"
-    assert REGULATION_NAME_MAP["espr_dpp"] == "ESPR/DPP (EU 2024/1781)"
+    assert REGULATION_NAME_MAP["codigo_penal"] == "Código Penal (LO 10/1995)"
 
 
 def test_chunk_documents_extracts_article_and_section():

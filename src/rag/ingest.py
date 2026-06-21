@@ -10,9 +10,9 @@ REGULATIONS_DIR = PROJECT_ROOT / "research" / "regulations"
 REGULATION_NAME_MAP = {
     "eu_ai_act": "EU AI Act",
     "gdpr": "GDPR",
-    "espr_dpp": "ESPR/DPP (EU 2024/1781)",
+    "codigo_penal": "Código Penal (LO 10/1995)",
     "lopdgdd": "LOPDGDD",
-    "ley_13_2022": "Ley 13/2022",
+    "ley_13_2022": "Ley 13/2022 (Comunicación Audiovisual)",
 }
 
 
