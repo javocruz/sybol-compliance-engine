@@ -19,9 +19,9 @@ ISSUER_KEY = "kms-key-1"
 ISSUE_REQUEST = {
     "documentId": DOC_ID,
     "issuerKey": ISSUER_KEY,
-    "subject": "urn:media:abc123",
-    "claims": [{"key": "mediaHash", "value": "abc123"}],
-    "format": "w3c-vc",
+    "recipientDid": "did:web:did.develop.sybol.id:tenants:sybol",
+    "claims": {"mediaHash": "abc123"},
+    "format": "jwt_vc_json",
 }
 
 SIGNED_CREDENTIAL = {
@@ -83,13 +83,41 @@ def test_login_stores_tokens_via_cognito():
             "idToken": VALID_ID,
             "refreshToken": "refresh",
         },
-    ) as cognito_login:
+    ) as cognito_login, patch(
+        "src.credentials.sybol_client.ensure_sybol_role_claims",
+        return_value=False,
+    ):
         data = client.login()
 
     assert data["accessToken"] == VALID_ACCESS
     assert client._access_token == VALID_ACCESS
     assert client._id_token == VALID_ID
     cognito_login.assert_called_once()
+
+
+def test_login_reauthenticates_when_role_claims_fixed():
+    client = _client(
+        access_token=None,
+        id_token=None,
+        email="user@ie.id",
+        password="secret",
+    )
+    token_sets = [
+        {"accessToken": "a1", "idToken": "i1"},
+        {"accessToken": VALID_ACCESS, "idToken": VALID_ID},
+    ]
+
+    with patch(
+        "src.credentials.sybol_client.cognito_user_password_login",
+        side_effect=token_sets,
+    ) as cognito_login, patch(
+        "src.credentials.sybol_client.ensure_sybol_role_claims",
+        return_value=True,
+    ):
+        data = client.login()
+
+    assert data["accessToken"] == VALID_ACCESS
+    assert cognito_login.call_count == 2
 
 
 def test_login_falls_back_to_api_path():

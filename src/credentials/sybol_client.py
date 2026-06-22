@@ -15,6 +15,7 @@ from .cognito_auth import (
     DEFAULT_COGNITO_REGION,
     CognitoAuthError,
     cognito_user_password_login,
+    ensure_sybol_role_claims,
 )
 
 logger = logging.getLogger(__name__)
@@ -128,6 +129,18 @@ class SybolClient:
                     region=self._cognito_region,
                     timeout=self._timeout,
                 )
+                if ensure_sybol_role_claims(
+                    data["accessToken"],
+                    region=self._cognito_region,
+                    timeout=self._timeout,
+                ):
+                    data = cognito_user_password_login(
+                        self._email,
+                        self._password,
+                        client_id=self._cognito_client_id,
+                        region=self._cognito_region,
+                        timeout=self._timeout,
+                    )
                 self._apply_token_data(data)
                 logger.info("Sybol login via Cognito USER_PASSWORD_AUTH succeeded.")
                 return data
@@ -203,6 +216,30 @@ class SybolClient:
     def ensure_authenticated(self) -> None:
         if not self._has_valid_tokens():
             self.login()
+
+    def get_catalog_document(self, document_id: str) -> dict[str, Any]:
+        """GET /api/catalog/documents/{id} — document schema and claim keys."""
+        self.ensure_authenticated()
+        envelope = self._request("GET", f"/api/catalog/documents/{document_id}")
+        data = envelope.get("data")
+        return data if isinstance(data, dict) else {}
+
+    def request_catalog_document(
+        self, name: str, description: str, justification: str
+    ) -> dict[str, Any]:
+        """POST /api/bo/document-requests — ask backoffice to add a catalog entry."""
+        self.ensure_authenticated()
+        envelope = self._request(
+            "POST",
+            "/api/bo/document-requests",
+            json={
+                "name": name,
+                "description": description,
+                "justification": justification,
+            },
+        )
+        data = envelope.get("data")
+        return data if isinstance(data, dict) else envelope
 
     def list_catalog_documents(self, search: str | None = None) -> list[dict[str, Any]]:
         """GET /api/catalog/documents — public catalog (no auth required on develop)."""

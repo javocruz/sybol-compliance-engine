@@ -98,8 +98,13 @@ async def issue(
         )
 
     try:
+        catalog_doc = sybol.get_catalog_document(settings.sybol_document_id)
         issue_request = build_catalog_issue_request(
-            result, rag, settings=settings, evidence_url=evidence_url
+            result,
+            rag,
+            settings=settings,
+            evidence_url=evidence_url,
+            catalog_document=catalog_doc or None,
         )
         signed_vc = sybol.issue_credential(issue_request)
     except SybolSigningError as exc:

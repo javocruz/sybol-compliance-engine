@@ -55,6 +55,12 @@ class Settings:
     sybol_subject_did: str | None = field(
         default_factory=lambda: os.getenv("SYBOL_SUBJECT_DID")
     )
+    sybol_recipient_did: str | None = field(
+        default_factory=lambda: os.getenv("SYBOL_RECIPIENT_DID")
+    )
+    sybol_credential_format: str = field(
+        default_factory=lambda: os.getenv("SYBOL_CREDENTIAL_FORMAT", "jwt_vc_json")
+    )
     sybol_level_of_assurance: int | None = field(
         default_factory=lambda: _optional_int(os.getenv("SYBOL_LEVEL_OF_ASSURANCE"))
     )

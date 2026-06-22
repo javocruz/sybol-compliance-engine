@@ -99,6 +99,10 @@ SIGNED_VC = {
 def _configured_sybol_client():
     client = MagicMock(spec=SybolClient)
     client.is_configured = True
+    client.get_catalog_document.return_value = {
+        "id": "doc-uuid",
+        "claims": [{"key": "mediaHash"}],
+    }
     client.issue_credential.return_value = SIGNED_VC
     return client
 
