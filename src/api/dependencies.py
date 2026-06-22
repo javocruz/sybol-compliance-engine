@@ -42,6 +42,15 @@ class Settings:
     )
     sybol_issuer_key: str | None = field(
         default_factory=lambda: os.getenv("SYBOL_ISSUER_KEY")
+        or "did:web:did.develop.sybol.id:tenants:sybol#ebcbb38c-1cfb-41a9-80a2-17bcaa3a5564"
+    )
+    sybol_cognito_client_id: str | None = field(
+        default_factory=lambda: os.getenv(
+            "SYBOL_COGNITO_CLIENT_ID", "39ergo6f0l4gk195ld6sjoi41p"
+        )
+    )
+    sybol_cognito_region: str = field(
+        default_factory=lambda: os.getenv("SYBOL_COGNITO_REGION", "eu-west-1")
     )
     sybol_subject_did: str | None = field(
         default_factory=lambda: os.getenv("SYBOL_SUBJECT_DID")
@@ -81,6 +90,8 @@ def get_sybol_client(settings: Settings | None = None):
         password=settings.sybol_password,
         document_id=settings.sybol_document_id,
         issuer_key=settings.sybol_issuer_key,
+        cognito_client_id=settings.sybol_cognito_client_id,
+        cognito_region=settings.sybol_cognito_region,
         timeout=settings.sybol_request_timeout,
     )
 

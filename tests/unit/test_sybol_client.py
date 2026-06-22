@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import httpx
 import pytest
 
+from src.credentials.cognito_auth import CognitoAuthError
 from src.credentials.sybol_client import (
     DEFAULT_API_BASE_URL,
     SybolClient,
@@ -68,8 +69,37 @@ def test_configured_with_email_password_and_catalog():
     ).is_configured is True
 
 
-def test_login_stores_tokens():
-    client = _client(access_token=None, id_token=None, email="user@ie.id", password="secret")
+def test_login_stores_tokens_via_cognito():
+    client = _client(
+        access_token=None,
+        id_token=None,
+        email="user@ie.id",
+        password="secret",
+    )
+    with patch(
+        "src.credentials.sybol_client.cognito_user_password_login",
+        return_value={
+            "accessToken": VALID_ACCESS,
+            "idToken": VALID_ID,
+            "refreshToken": "refresh",
+        },
+    ) as cognito_login:
+        data = client.login()
+
+    assert data["accessToken"] == VALID_ACCESS
+    assert client._access_token == VALID_ACCESS
+    assert client._id_token == VALID_ID
+    cognito_login.assert_called_once()
+
+
+def test_login_falls_back_to_api_path():
+    client = _client(
+        access_token=None,
+        id_token=None,
+        email="user@ie.id",
+        password="secret",
+        cognito_client_id="",
+    )
     mock_response = MagicMock()
     mock_response.is_success = True
     mock_response.json.return_value = {
@@ -77,18 +107,13 @@ def test_login_stores_tokens():
         "data": {
             "accessToken": VALID_ACCESS,
             "idToken": VALID_ID,
-            "refreshToken": "refresh",
         },
     }
 
     with patch("httpx.post", return_value=mock_response) as post:
-        data = client.login()
+        client.login()
 
-    assert data["accessToken"] == VALID_ACCESS
-    assert client._access_token == VALID_ACCESS
-    assert client._id_token == VALID_ID
-    post.assert_called_once()
-    assert post.call_args[0][0].endswith("/auth/login")
+    assert post.call_args[0][0].endswith("/api/bl/auth/login")
 
 
 def test_issue_credential_success():
@@ -129,6 +154,10 @@ def test_issue_raises_on_api_error():
 
 def test_login_timeout():
     client = _client(access_token=None, id_token=None, email="a@b.com", password="x")
-    with patch("httpx.post", side_effect=httpx.TimeoutException("timeout")):
-        with pytest.raises(SybolSigningError, match="timed out"):
-            client.login()
+    with patch(
+        "src.credentials.sybol_client.cognito_user_password_login",
+        side_effect=CognitoAuthError("cognito fail"),
+    ):
+        with patch("httpx.post", side_effect=httpx.TimeoutException("timeout")):
+            with pytest.raises(SybolSigningError, match="All login methods failed"):
+                client.login()

@@ -30,7 +30,6 @@ def main() -> int:
     )
 
     try:
-        client.ensure_authenticated()
         docs = client.list_catalog_documents(search=args.search or None)
     except SybolSigningError as exc:
         print(f"Failed: {exc}", file=sys.stderr)

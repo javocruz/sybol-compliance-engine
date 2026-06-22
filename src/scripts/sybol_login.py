@@ -44,7 +44,8 @@ def main() -> int:
     id_token = data.get("idToken", "")
     refresh = data.get("refreshToken", "")
 
-    print("Login OK. Add these to src/.env (tokens expire in ~1 hour):\n")
+    print("Login OK (Cognito USER_PASSWORD_AUTH or API fallback).")
+    print("Add these to src/.env (tokens expire in ~1 hour):\n")
     print(f"SYBOL_ACCESS_TOKEN={access}")
     print(f"SYBOL_ID_TOKEN={id_token}")
     if refresh:

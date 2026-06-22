@@ -1,7 +1,7 @@
 """
 Sybol BusinessWallet API client (OpenAPI v4 — openapi-wallet.yaml).
 
-Authentication: POST /auth/login → accessToken + idToken (Cognito via REST).
+Authentication: Cognito USER_PASSWORD_AUTH (develop client id) or API login fallback.
 Issuance: POST /api/bl/credentials with CredentialIssueRequest (catalog + claims).
 """
 
@@ -10,10 +10,25 @@ from typing import Any
 
 import httpx
 
+from .cognito_auth import (
+    DEFAULT_COGNITO_CLIENT_ID,
+    DEFAULT_COGNITO_REGION,
+    CognitoAuthError,
+    cognito_user_password_login,
+)
+
 logger = logging.getLogger(__name__)
 
 _TBD_PREFIX = "TBD_"
 DEFAULT_API_BASE_URL = "https://api.develop.wallet.sybol.id"
+DEFAULT_ISSUER_KEY = (
+    "did:web:did.develop.sybol.id:tenants:sybol#ebcbb38c-1cfb-41a9-80a2-17bcaa3a5564"
+)
+
+_API_LOGIN_PATHS = (
+    "/api/bl/auth/login",
+    "/auth/login",
+)
 
 
 class SybolSigningError(Exception):
@@ -34,6 +49,8 @@ class SybolClient:
         password: str | None = None,
         document_id: str | None = None,
         issuer_key: str | None = None,
+        cognito_client_id: str | None = None,
+        cognito_region: str | None = None,
         timeout: float = 10.0,
     ) -> None:
         self._api_base_url = (api_base_url or DEFAULT_API_BASE_URL).rstrip("/")
@@ -43,6 +60,8 @@ class SybolClient:
         self._password = password
         self._document_id = document_id
         self._issuer_key = issuer_key
+        self._cognito_client_id = cognito_client_id or DEFAULT_COGNITO_CLIENT_ID
+        self._cognito_region = cognito_region or DEFAULT_COGNITO_REGION
         self._timeout = timeout
 
     @property
@@ -90,17 +109,59 @@ class SybolClient:
         }
 
     def login(self) -> dict[str, Any]:
-        """POST /auth/login — exchange email/password for Cognito token set."""
+        """Exchange email/password for Cognito tokens (direct or API wrapper)."""
         if not self._has_login_credentials():
             raise SybolNotConfiguredError(
-                "Set SYBOL_EMAIL and SYBOL_PASSWORD to use /auth/login."
+                "Set SYBOL_EMAIL and SYBOL_PASSWORD to log in."
             )
+        assert self._email is not None
+        assert self._password is not None
+
+        errors: list[str] = []
+
+        if self._cognito_client_id and not self._is_placeholder(self._cognito_client_id):
+            try:
+                data = cognito_user_password_login(
+                    self._email,
+                    self._password,
+                    client_id=self._cognito_client_id,
+                    region=self._cognito_region,
+                    timeout=self._timeout,
+                )
+                self._apply_token_data(data)
+                logger.info("Sybol login via Cognito USER_PASSWORD_AUTH succeeded.")
+                return data
+            except CognitoAuthError as exc:
+                errors.append(f"Cognito: {exc}")
+
+        for path in _API_LOGIN_PATHS:
+            try:
+                data = self._api_login(path)
+                self._apply_token_data(data)
+                logger.info("Sybol login via %s succeeded.", path)
+                return data
+            except SybolSigningError as exc:
+                errors.append(f"{path}: {exc}")
+
+        raise SybolSigningError(
+            "All login methods failed:\n  - " + "\n  - ".join(errors)
+        )
+
+    def _apply_token_data(self, data: dict[str, Any]) -> None:
+        access = data.get("accessToken")
+        id_token = data.get("idToken")
+        if not access or not id_token:
+            raise SybolSigningError("Login response missing accessToken or idToken.")
+        self._access_token = access
+        self._id_token = id_token
+
+    def _api_login(self, path: str) -> dict[str, Any]:
         assert self._email is not None
         assert self._password is not None
 
         try:
             response = httpx.post(
-                f"{self._api_base_url}/auth/login",
+                f"{self._api_base_url}{path}",
                 json={"email": self._email, "password": self._password},
                 timeout=self._timeout,
             )
@@ -137,8 +198,6 @@ class SybolClient:
         if not access or not id_token:
             raise SybolSigningError("Sybol login response missing accessToken or idToken.")
 
-        self._access_token = access
-        self._id_token = id_token
         return data
 
     def ensure_authenticated(self) -> None:
@@ -146,16 +205,39 @@ class SybolClient:
             self.login()
 
     def list_catalog_documents(self, search: str | None = None) -> list[dict[str, Any]]:
-        """GET /api/catalog/documents — discover documentId for issuance."""
-        self.ensure_authenticated()
+        """GET /api/catalog/documents — public catalog (no auth required on develop)."""
         params: dict[str, str] = {}
         if search:
             params["search"] = search
-        envelope = self._request("GET", "/api/catalog/documents", params=params or None)
+        envelope = self._public_get("/api/catalog/documents", params=params or None)
         data = envelope.get("data")
         if isinstance(data, list):
             return data
         return []
+
+    def get_settings(self) -> dict[str, Any]:
+        """GET /api/bl/settings — tenant settings (issuer keys, etc.)."""
+        self.ensure_authenticated()
+        envelope = self._request("GET", "/api/bl/settings")
+        data = envelope.get("data")
+        return data if isinstance(data, dict) else {}
+
+    def _public_get(self, path: str, params: dict | None = None) -> dict[str, Any]:
+        url = f"{self._api_base_url}{path}"
+        try:
+            response = httpx.get(url, params=params, timeout=self._timeout)
+        except httpx.TimeoutException as exc:
+            raise SybolSigningError(
+                f"Sybol API request timed out after {self._timeout}s"
+            ) from exc
+        except httpx.TransportError as exc:
+            raise SybolSigningError(f"Sybol API transport error: {exc}") from exc
+        envelope = _parse_json(response)
+        if not response.is_success or not isinstance(envelope, dict):
+            raise SybolSigningError(
+                f"Sybol API returned {response.status_code}: {response.text[:300]}"
+            )
+        return envelope
 
     def issue_credential(self, issue_request: dict[str, Any]) -> dict[str, Any]:
         """
