@@ -1,4 +1,6 @@
 from .constants import (
+    CAMERA_LIKELY_ARTIFACT_MIN,
+    CAMERA_LIKELY_VISUAL_MIN,
     EDITED_PROFILE_ARTIFACT_MAX,
     EDITED_PROFILE_ARTIFACT_MIN,
     EDITED_PROFILE_METADATA_MAX,
@@ -8,6 +10,8 @@ from .constants import (
     EDITED_PROFILE_SCORE_MIN,
     EXIF_RICH_METADATA_MIN,
     EXIF_RICH_SCORE_FLOOR,
+    PNG_NEUTRAL_METADATA_MAX,
+    PNG_NEUTRAL_METADATA_MIN,
     PLATT_ENABLED,
     PLATT_PARAMS_PATH,
     PROVENANCE_MATCH_MIN,
@@ -57,6 +61,13 @@ def calibrate(raw_score: float) -> float:
     return _clamp(1.0 / (1.0 + math.exp(a * raw_score + b)))
 
 
+def _camera_likely(breakdown: SignalBreakdown) -> bool:
+    return (
+        breakdown.a >= CAMERA_LIKELY_ARTIFACT_MIN
+        and breakdown.v >= CAMERA_LIKELY_VISUAL_MIN
+    )
+
+
 def _apply_profile_rules(raw: float, breakdown: SignalBreakdown) -> float:
     m, a, v, p = breakdown.m, breakdown.a, breakdown.v, breakdown.p
 
@@ -73,9 +84,12 @@ def _apply_profile_rules(raw: float, breakdown: SignalBreakdown) -> float:
     ):
         raw = max(EDITED_PROFILE_SCORE_MIN, min(raw, EDITED_PROFILE_SCORE_MAX))
 
-    # Apply last — overrides edited clamp for PNG / synthetic metadata class.
-    if m <= SYNTHETIC_PROFILE_METADATA_MAX and p <= SYNTHETIC_PROFILE_PROVENANCE_MAX:
-        raw = min(raw, SYNTHETIC_PROFILE_SCORE_CAP)
+    # Weak provenance + low or PNG-neutral metadata — cap unless camera signals say otherwise.
+    if p <= SYNTHETIC_PROFILE_PROVENANCE_MAX and not _camera_likely(breakdown):
+        low_metadata = m <= SYNTHETIC_PROFILE_METADATA_MAX
+        png_neutral = PNG_NEUTRAL_METADATA_MIN <= m <= PNG_NEUTRAL_METADATA_MAX
+        if low_metadata or png_neutral:
+            raw = min(raw, SYNTHETIC_PROFILE_SCORE_CAP)
 
     return raw
 

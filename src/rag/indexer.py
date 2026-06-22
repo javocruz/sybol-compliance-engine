@@ -48,5 +48,9 @@ def build_index(
     vector_store = QdrantVectorStore(client=client, collection_name=COLLECTION_NAME)
     # StorageContext.from_defaults is patched in tests; use it to create storage
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
-    index = VectorStoreIndex(nodes, storage_context=storage_context)
+    index = VectorStoreIndex(
+        nodes,
+        storage_context=storage_context,
+        embed_model=embed_model,
+    )
     return index, client

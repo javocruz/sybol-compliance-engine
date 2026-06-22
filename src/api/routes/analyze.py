@@ -2,7 +2,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
-from src.api.schemas import AnalyzeResponse
+from src.api.schemas import AnalyzeResponse, ScoreBreakdown
 from src.scoring.pipeline import score_image
 from src.scoring.preprocess import ScoringError
 
@@ -34,7 +34,12 @@ async def analyze(file: UploadFile = File(...)):
     breakdown = result.score_breakdown
     return AnalyzeResponse(
         authenticity_score=result.authenticity_score,
-        score_breakdown=[breakdown.m, breakdown.a, breakdown.v, breakdown.p],
+        score_breakdown=ScoreBreakdown(
+            m=breakdown.m,
+            a=breakdown.a,
+            v=breakdown.v,
+            p=breakdown.p,
+        ),
         compliance_status=result.compliance_status.value,
         media_hash=result.media_hash,
         model_version=result.model_version,

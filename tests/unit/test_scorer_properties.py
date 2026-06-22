@@ -19,12 +19,16 @@ from hypothesis import assume, given
 from hypothesis import strategies as st
 
 from scoring.constants import (
+    CAMERA_LIKELY_ARTIFACT_MIN,
+    CAMERA_LIKELY_VISUAL_MIN,
     EDITED_PROFILE_ARTIFACT_MAX,
     EDITED_PROFILE_ARTIFACT_MIN,
     EDITED_PROFILE_METADATA_MAX,
     EDITED_PROFILE_METADATA_MIN,
     EDITED_PROFILE_PROVENANCE_MAX,
     EXIF_RICH_METADATA_MIN,
+    PNG_NEUTRAL_METADATA_MAX,
+    PNG_NEUTRAL_METADATA_MIN,
     PROVENANCE_MATCH_MIN,
     SYNTHETIC_PROFILE_METADATA_MAX,
     SYNTHETIC_PROFILE_PROVENANCE_MAX,
@@ -45,12 +49,19 @@ def _breakdown(m: float, a: float, v: float, p: float) -> SignalBreakdown:
     return SignalBreakdown(m=m, a=a, v=v, p=p)
 
 
-def _rules_apply(m: float, a: float, p: float) -> bool:
+def _rules_apply(m: float, a: float, v: float, p: float) -> bool:
     if p >= PROVENANCE_MATCH_MIN:
         return True
     if m >= EXIF_RICH_METADATA_MIN:
         return True
-    if p <= SYNTHETIC_PROFILE_PROVENANCE_MAX and m <= SYNTHETIC_PROFILE_METADATA_MAX:
+    if (
+        p <= SYNTHETIC_PROFILE_PROVENANCE_MAX
+        and not (a >= CAMERA_LIKELY_ARTIFACT_MIN and v >= CAMERA_LIKELY_VISUAL_MIN)
+        and (
+            m <= SYNTHETIC_PROFILE_METADATA_MAX
+            or PNG_NEUTRAL_METADATA_MIN <= m <= PNG_NEUTRAL_METADATA_MAX
+        )
+    ):
         return True
     if (
         EDITED_PROFILE_METADATA_MIN <= m <= EDITED_PROFILE_METADATA_MAX
@@ -73,7 +84,7 @@ def test_score_always_in_unit_interval(m, a, v, p):
 
 @given(m=signal, a=signal, v=signal, p=signal)
 def test_weighted_average_when_no_post_rules(m, a, v, p):
-    assume(not _rules_apply(m, a, p))
+    assume(not _rules_apply(m, a, v, p))
     expected = WM * m + WA * a + WV * v + WP * p
     assert math.isclose(
         compute_authenticity_score(_breakdown(m, a, v, p)), expected, abs_tol=1e-9
@@ -96,7 +107,7 @@ def test_provenance_match_applies_floor(p):
     ),
 )
 def test_synthetic_profile_applies_cap(m, p):
-    score = compute_authenticity_score(_breakdown(m, 0.75, 1.0, p))
+    score = compute_authenticity_score(_breakdown(m, 0.75, 0.71, p))
     assert score <= 0.26
 
 
