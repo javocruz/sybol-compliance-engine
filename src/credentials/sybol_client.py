@@ -224,6 +224,80 @@ class SybolClient:
         data = envelope.get("data")
         return data if isinstance(data, dict) else {}
 
+    def create_catalog_document(
+        self,
+        *,
+        code: str,
+        label: str,
+        description: str,
+        compliance_path: str,
+        supported_formats: list[str] | None = None,
+        state: str = "draft",
+        audience: str = "company",
+    ) -> dict[str, Any]:
+        """POST /api/catalog/documents — create a tenant catalog entry."""
+        self.ensure_authenticated()
+        body = {
+            "code": code,
+            "translations": {"es-ES": {"label": label, "description": description}},
+            "default_lang_code": "es-ES",
+            "compliance_path": compliance_path,
+            "state": state,
+            "audience": audience,
+            "supported_formats": supported_formats or ["jwt_vc_json"],
+        }
+        envelope = self._request("POST", "/api/catalog/documents", json=body)
+        data = envelope.get("data")
+        if not isinstance(data, dict):
+            raise SybolSigningError("Create catalog document response missing data.")
+        return data
+
+    def update_catalog_document(
+        self, document_id: str, document: dict[str, Any]
+    ) -> dict[str, Any]:
+        """POST /api/catalog/documents/{id} — update catalog entry (e.g. activate)."""
+        self.ensure_authenticated()
+        envelope = self._request(
+            "POST", f"/api/catalog/documents/{document_id}", json=document
+        )
+        data = envelope.get("data")
+        return data if isinstance(data, dict) else {}
+
+    def create_catalog_claim(
+        self,
+        *,
+        document_id: str,
+        key: str,
+        label: str,
+        description: str,
+        data_type: str = "string",
+        lang: str = "es-ES",
+    ) -> dict[str, Any]:
+        """POST /api/catalog/claims — register a claim on a catalog document."""
+        self.ensure_authenticated()
+        body = {
+            "document_id": document_id,
+            "key": key,
+            "data_type": data_type,
+            "default_lang_code": lang,
+            "translations": {lang: {"label": label, "description": description}},
+        }
+        envelope = self._request("POST", "/api/catalog/claims", json=body)
+        data = envelope.get("data")
+        if not isinstance(data, dict):
+            raise SybolSigningError("Create catalog claim response missing data.")
+        return data
+
+    def list_credentials(self, *, limit: int = 25, search: str | None = None) -> list[dict[str, Any]]:
+        """GET /api/bl/credentials — list issued credentials for tenant."""
+        self.ensure_authenticated()
+        params: dict[str, str | int] = {"limit": limit}
+        if search:
+            params["search"] = search
+        envelope = self._request("GET", "/api/bl/credentials", params=params)
+        data = envelope.get("data")
+        return data if isinstance(data, list) else []
+
     def request_catalog_document(
         self, name: str, description: str, justification: str
     ) -> dict[str, Any]:

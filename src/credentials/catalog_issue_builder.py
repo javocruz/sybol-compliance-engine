@@ -50,17 +50,15 @@ def filter_claims_for_catalog(
     claims: dict[str, str],
     catalog_claim_keys: list[str] | None,
 ) -> dict[str, str]:
-    """Keep only keys defined on the catalog document (plus compliance payload blob)."""
+    """Keep catalog keys when schema is complete; else send full inline claims."""
     if not catalog_claim_keys:
         return claims
 
-    allowed = set(catalog_claim_keys)
-    filtered = {k: v for k, v in claims.items() if k in allowed}
-    if not filtered and claims:
-        # Demo fallback: map mediaHash into first catalog key when schemas differ.
-        first_key = catalog_claim_keys[0]
-        filtered[first_key] = claims.get("mediaHash", "")[:64]
-    return filtered
+    missing = set(claims.keys()) - set(catalog_claim_keys)
+    if missing:
+        return claims
+
+    return {k: claims[k] for k in catalog_claim_keys if k in claims}
 
 
 def extract_catalog_claim_keys(catalog_document: dict[str, Any]) -> list[str]:

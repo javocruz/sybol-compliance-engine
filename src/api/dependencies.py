@@ -39,6 +39,7 @@ class Settings:
     )
     sybol_document_id: str | None = field(
         default_factory=lambda: os.getenv("SYBOL_DOCUMENT_ID")
+        or "0acdb1ed-4cd2-41a4-917a-b7270d6166b9"
     )
     sybol_issuer_key: str | None = field(
         default_factory=lambda: os.getenv("SYBOL_ISSUER_KEY")

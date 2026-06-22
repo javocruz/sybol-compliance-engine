@@ -38,13 +38,13 @@ if [[ -f src/.env ]] && grep -q 'MISTRAL_API_KEY=.\+' src/.env 2>/dev/null; then
 echo ""
 echo "=== Sybol signing (Option A/C) ==="
 if [[ -f src/.env ]]; then
-  grep -q 'SYBOL_ACCESS_TOKEN=.\+' src/.env 2>/dev/null && ok "SYBOL_ACCESS_TOKEN set" || no "SYBOL_ACCESS_TOKEN (paste from browser DevTools)"
-  grep -q 'SYBOL_ID_TOKEN=.\+' src/.env 2>/dev/null && ok "SYBOL_ID_TOKEN set" || no "SYBOL_ID_TOKEN"
-  grep -q 'SYBOL_DOCUMENT_ID=.\+' src/.env 2>/dev/null && ok "SYBOL_DOCUMENT_ID set" || no "SYBOL_DOCUMENT_ID (ask Iñigo / discover catalog)"
-  grep -q 'SYBOL_ISSUER_KEY=.\+' src/.env 2>/dev/null && ok "SYBOL_ISSUER_KEY set" || no "SYBOL_ISSUER_KEY (ask Iñigo)"
+  grep -qE 'SYBOL_ACCESS_TOKEN=.+|SYBOL_EMAIL=.+@' src/.env 2>/dev/null && ok "Sybol auth (tokens or email)" || no "Sybol auth — set SYBOL_EMAIL/PASSWORD or tokens in src/.env"
+  grep -q 'SYBOL_DOCUMENT_ID=.\+' src/.env 2>/dev/null && ok "SYBOL_DOCUMENT_ID set" || ok "SYBOL_DOCUMENT_ID (defaults to MEDIA_COMPLIANCE_IE on develop)"
+  grep -q 'SYBOL_ISSUER_KEY=.\+' src/.env 2>/dev/null && ok "SYBOL_ISSUER_KEY set" || ok "SYBOL_ISSUER_KEY (has develop default in code)"
 else
   no "src/.env (copy from src/.env.example)"
 fi
+echo "  Probe: SYBOL_EMAIL=... SYBOL_PASSWORD=... PYTHONPATH=src python3 -m scripts.sybol_e2e_score_issue"
 
 echo ""
 echo "Run: PYTHONPATH=src uvicorn src.api.main:app --reload --port 8000"

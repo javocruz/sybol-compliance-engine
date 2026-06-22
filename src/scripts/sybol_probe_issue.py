@@ -31,15 +31,17 @@ from src.credentials.sybol_client import SybolClient, SybolSigningError
 from src.rag.models import ComplianceResult, RegulationRef
 from src.scoring.models import ComplianceStatus, ScoringResult, SignalBreakdown
 
-# Active develop catalog doc (Documento de prueba) — used when SYBOL_DOCUMENT_ID unset
-DEFAULT_PROBE_DOCUMENT_ID = "a4236879-fcfd-4bc0-8811-e2ccf873fb70"
+from src.credentials.sybol_catalog import (
+    DEFAULT_MEDIA_COMPLIANCE_DOCUMENT_ID,
+    ensure_media_compliance_catalog,
+)
 
 
 def main() -> int:
     settings = Settings()
-    document_id = settings.sybol_document_id or DEFAULT_PROBE_DOCUMENT_ID
+    document_id = settings.sybol_document_id or DEFAULT_MEDIA_COMPLIANCE_DOCUMENT_ID
     if not os.getenv("SYBOL_DOCUMENT_ID"):
-        print(f"SYBOL_DOCUMENT_ID unset — using develop probe doc {document_id}")
+        print(f"SYBOL_DOCUMENT_ID unset — using MEDIA_COMPLIANCE_IE {document_id}")
         settings = replace(settings, sybol_document_id=document_id)
 
     client = SybolClient(
@@ -72,19 +74,24 @@ def main() -> int:
             code = d.get("code") or d.get("name")
             print(f"  {code}: id={d.get('id')} state={d.get('state')}")
         if not any("media" in str(d.get("code", "")).lower() for d in docs):
-            print("  (no MediaCompliance doc — requesting one via backoffice)")
+            print("  Ensuring MEDIA_COMPLIANCE_IE catalog document...")
             try:
-                resp = client.request_catalog_document(
-                    name="Media Compliance Credential",
-                    description=(
-                        "Verifiable credential for image authenticity and "
-                        "EU regulatory compliance (mediaHash, score, regulationRefs)."
-                    ),
-                    justification="IEU Labs compliance engine demo — June 2026",
-                )
-                print(f"  document-request response: {json.dumps(resp)[:300]}")
+                doc_id = ensure_media_compliance_catalog(client)
+                print(f"  catalog ready: {doc_id}")
             except SybolSigningError as exc:
-                print(f"  document-request failed: {exc}")
+                print(f"  bootstrap failed: {exc}")
+                try:
+                    resp = client.request_catalog_document(
+                        name="Media Compliance Credential",
+                        description=(
+                            "Verifiable credential for image authenticity and "
+                            "EU regulatory compliance (mediaHash, score, regulationRefs)."
+                        ),
+                        justification="IEU Labs compliance engine demo — June 2026",
+                    )
+                    print(f"  document-request fallback: {json.dumps(resp)[:200]}")
+                except SybolSigningError as exc2:
+                    print(f"  document-request failed: {exc2}")
     except SybolSigningError as exc:
         print(f"  catalog list FAILED: {exc}")
 

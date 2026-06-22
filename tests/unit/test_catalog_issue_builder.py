@@ -52,8 +52,14 @@ def test_build_catalog_issue_request_live_api_shape():
     assert "mediaHash" in body["claims"]
 
 
-def test_filter_claims_maps_to_catalog_keys():
+def test_filter_claims_keeps_full_payload_when_catalog_incomplete():
     full = build_media_claims(_scoring_result(), _rag(), evidence_url="https://x")
     filtered = filter_claims_for_catalog(full, ["cifSybol"])
-    assert list(filtered.keys()) == ["cifSybol"]
-    assert len(filtered["cifSybol"]) == 64
+    assert filtered == full
+
+
+def test_filter_claims_when_catalog_covers_all_keys():
+    full = build_media_claims(_scoring_result(), _rag(), evidence_url=None)
+    keys = list(full.keys())
+    filtered = filter_claims_for_catalog(full, keys)
+    assert filtered == full
