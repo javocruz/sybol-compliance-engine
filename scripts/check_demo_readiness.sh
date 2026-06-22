@@ -44,7 +44,8 @@ if [[ -f src/.env ]]; then
 else
   no "src/.env (copy from src/.env.example)"
 fi
-echo "  Probe: SYBOL_EMAIL=... SYBOL_PASSWORD=... PYTHONPATH=src python3 -m scripts.sybol_e2e_score_issue"
+echo "  E2E: PYTHONPATH=src python3 -m scripts.sybol_e2e_full_issue <image>"
+echo "  API:  PYTHONPATH=src uvicorn src.api.main:app --port 8000"
 
 echo ""
 echo "Run: PYTHONPATH=src uvicorn src.api.main:app --reload --port 8000"

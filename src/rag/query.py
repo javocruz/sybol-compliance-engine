@@ -30,17 +30,29 @@ def _validate_refs(refs: list[RegulationRef]) -> list[RegulationRef]:
     return valid
 
 
+def _mistral_api_key() -> str | None:
+    key = os.environ.get("MISTRAL_API_KEY", "").strip()
+    if not key or key in {"your_key_here", "TBD"}:
+        return None
+    return key
+
+
+def _retrieval_only_summary(query: str, nodes) -> str:
+    if not nodes:
+        return f"No regulation excerpts retrieved for: {query}"
+    intro = (
+        "Retrieval-only summary (set MISTRAL_API_KEY for LLM synthesis). "
+        "Top excerpts:"
+    )
+    snippets = [n.node.get_content()[:240].replace("\n", " ") for n in nodes[:3]]
+    return intro + " " + " | ".join(snippets)
+
+
 def query_regulations(
     query: str,
     index: VectorStoreIndex,
     regulation_type: str | None = None,
 ) -> ComplianceResult:
-    llm = MistralAI(
-        model="mistral-large-latest",
-        api_key=os.environ["MISTRAL_API_KEY"],
-        system_prompt=SYNTHESIS_PROMPT,
-    )
-
     filters = None
     if regulation_type:
         from llama_index.core.vector_stores import MetadataFilter, MetadataFilters
@@ -69,10 +81,21 @@ def query_regulations(
             )
         )
 
-    context = "\n\n---\n\n".join(n.node.get_content() for n in nodes)
-    response = llm.complete(f"Context:\n{context}\n\nQuery: {query}")
+    api_key = _mistral_api_key()
+    if api_key:
+        llm = MistralAI(
+            model="mistral-large-latest",
+            api_key=api_key,
+            system_prompt=SYNTHESIS_PROMPT,
+        )
+        context = "\n\n---\n\n".join(n.node.get_content() for n in nodes)
+        response = llm.complete(f"Context:\n{context}\n\nQuery: {query}")
+        summary = str(response)
+    else:
+        logger.warning("MISTRAL_API_KEY not set — using retrieval-only RAG summary.")
+        summary = _retrieval_only_summary(query, nodes)
 
     return ComplianceResult(
-        summary=str(response),
+        summary=summary,
         regulation_refs=_validate_refs(refs),
     )
