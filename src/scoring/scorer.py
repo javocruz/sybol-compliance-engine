@@ -6,6 +6,12 @@ from .constants import (
     EDITED_PROFILE_PROVENANCE_MAX,
     EDITED_PROFILE_SCORE_MAX,
     EDITED_PROFILE_SCORE_MIN,
+    EDITED_RESAVED_ARTIFACT_MIN,
+    EDITED_RESAVED_METADATA_MAX,
+    EDITED_RESAVED_METADATA_MIN,
+    EDITED_RESAVED_PROVENANCE_MAX,
+    EDITED_RESAVED_SCORE_MAX,
+    EDITED_RESAVED_SCORE_MIN,
     EXIF_RICH_METADATA_MIN,
     EXIF_RICH_SCORE_FLOOR,
     PLATT_ENABLED,
@@ -65,6 +71,16 @@ def _apply_profile_rules(raw: float, breakdown: SignalBreakdown) -> float:
 
     if m >= EXIF_RICH_METADATA_MIN:
         raw = max(raw, EXIF_RICH_SCORE_FLOOR)
+
+    # Re-saved edited image (camera JPEG, EXIF stripped, strong artifacts, no
+    # provenance match) lands in the review band and is exempt from the synthetic
+    # cap below, which would otherwise treat it like a non-compliant PNG.
+    if (
+        EDITED_RESAVED_METADATA_MIN <= m <= EDITED_RESAVED_METADATA_MAX
+        and a >= EDITED_RESAVED_ARTIFACT_MIN
+        and p <= EDITED_RESAVED_PROVENANCE_MAX
+    ):
+        return max(EDITED_RESAVED_SCORE_MIN, min(raw, EDITED_RESAVED_SCORE_MAX))
 
     if (
         EDITED_PROFILE_METADATA_MIN <= m <= EDITED_PROFILE_METADATA_MAX

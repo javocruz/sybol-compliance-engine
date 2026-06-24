@@ -11,9 +11,9 @@ Regression harness, golden dataset, and known gaps for Step 4 validation.
 |-------|------:|-----|
 | `authentic` | 30 | TC-001 — score 0.8–1.0, status `compliant` |
 | `ai_generated` | 37 | TC-002 — score 0.0–0.3, status `non-compliant` |
-| `edited` | **0** | TC-003 — **not in manifest yet** (Youssef) |
+| `edited` | 10 | TC-003 — score 0.3–0.7, status `review` |
 
-`manifest.json` lists 67 entries; all files on disk match (verified).
+`manifest.json` lists 77 entries; all files on disk match (verified).
 
 Provenance reference images (pHash index): `qa/test_cases/authentic/` (same 30 photos, not labelled for regression).
 
@@ -60,6 +60,7 @@ See `qa/test_cases/golden/scoring_report.csv`.
 |-------|--------:|-------------|--------------|
 | authentic | 30/30 | 0.80 – 0.94 | Provenance match floor + EXIF-rich JPEG boost |
 | ai_generated | 37/37 | 0.26 (capped) | PNG/no-EXIF artifact path + synthetic profile cap |
+| edited | 10/10 | 0.35 – 0.40 | Stripped-EXIF JPEG (`m ≈ 0.39`) → re-saved edited profile → review |
 
 **Layers:** format-aware artifacts (`artifacts.py`) → weighted sum → profile rules (`scorer.py`).
 
@@ -67,8 +68,9 @@ See `qa/test_cases/golden/scoring_report.csv`.
 |------|---------|
 | Provenance match floor (`p ≥ 0.9`) | Known reference photos → ≥ 0.82 |
 | EXIF-rich floor (`m ≥ 0.72`) | Camera JPEGs without reference index → ≥ 0.80 |
+| Re-saved edited (`0.36 ≤ m ≤ 0.42`, `a ≥ 0.55`, `p ≤ 0.30`) | Stripped-EXIF camera JPEG → 0.35–0.60 review (exempt from synthetic cap) |
 | Synthetic cap (`m ≤ 0.45`, `p ≤ 0.28`) | AI PNG class → ≤ 0.26 |
-| Edited clamp (TC-003 ready) | Partial metadata + mid artifacts → 0.35–0.65 |
+| Edited clamp (partial-EXIF) | Partial metadata + mid artifacts → 0.35–0.65 |
 
 Optional Platt calibration: `PYTHONPATH=src python3 scripts/fit_platt_calibration.py` (off by default).
 
@@ -76,7 +78,7 @@ Optional Platt calibration: `PYTHONPATH=src python3 scripts/fit_platt_calibratio
 
 - TC-001: authentic → score 0.8–1.0, compliant — **passing**
 - TC-002: AI-generated → score 0.0–0.3, non-compliant — **passing**
-- TC-003: edited → score 0.3–0.7, review — **blocked: no edited images**
+- TC-003: edited → score 0.3–0.7, review — **passing** (10 edited images, 10/10)
 - TC-004: corrupted file → clean error — see unit tests
 - TC-005: RAG query — blocked on PDFs + Qdrant
 - TC-006: VC schema — **passing** (`tests/unit/test_vc_schema.py`, integration VC pipeline)

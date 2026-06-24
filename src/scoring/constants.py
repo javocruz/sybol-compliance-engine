@@ -27,6 +27,18 @@ EDITED_PROFILE_PROVENANCE_MAX = 0.55
 EDITED_PROFILE_SCORE_MIN = 0.35
 EDITED_PROFILE_SCORE_MAX = 0.65
 
+# Re-saved edited profile: a camera-format JPEG whose EXIF was stripped by an
+# editor (presence baseline only -> m ~0.39), carrying strong edit/generation
+# artifacts and absent from the provenance set. This sits between an authentic
+# camera JPEG (m >= 0.62) and a synthetic PNG (m ~0.35), so it maps to the
+# review band instead of the synthetic non-compliant cap.
+EDITED_RESAVED_METADATA_MIN = 0.36
+EDITED_RESAVED_METADATA_MAX = 0.42
+EDITED_RESAVED_ARTIFACT_MIN = 0.55
+EDITED_RESAVED_PROVENANCE_MAX = 0.30
+EDITED_RESAVED_SCORE_MIN = 0.35
+EDITED_RESAVED_SCORE_MAX = 0.60
+
 DEEPFAKE_MODEL_ID = "dima806/deepfake_vs_real_image_detection"
 MODEL_INPUT_SIZE = 224
 

@@ -24,6 +24,10 @@ from scoring.constants import (
     EDITED_PROFILE_METADATA_MAX,
     EDITED_PROFILE_METADATA_MIN,
     EDITED_PROFILE_PROVENANCE_MAX,
+    EDITED_RESAVED_ARTIFACT_MIN,
+    EDITED_RESAVED_METADATA_MAX,
+    EDITED_RESAVED_METADATA_MIN,
+    EDITED_RESAVED_PROVENANCE_MAX,
     EXIF_RICH_METADATA_MIN,
     PROVENANCE_MATCH_MIN,
     SYNTHETIC_PROFILE_METADATA_MAX,
@@ -45,10 +49,20 @@ def _breakdown(m: float, a: float, v: float, p: float) -> SignalBreakdown:
     return SignalBreakdown(m=m, a=a, v=v, p=p)
 
 
+def _is_resaved_edited(m: float, a: float, p: float) -> bool:
+    return (
+        EDITED_RESAVED_METADATA_MIN <= m <= EDITED_RESAVED_METADATA_MAX
+        and a >= EDITED_RESAVED_ARTIFACT_MIN
+        and p <= EDITED_RESAVED_PROVENANCE_MAX
+    )
+
+
 def _rules_apply(m: float, a: float, p: float) -> bool:
     if p >= PROVENANCE_MATCH_MIN:
         return True
     if m >= EXIF_RICH_METADATA_MIN:
+        return True
+    if _is_resaved_edited(m, a, p):
         return True
     if p <= SYNTHETIC_PROFILE_PROVENANCE_MAX and m <= SYNTHETIC_PROFILE_METADATA_MAX:
         return True
@@ -96,6 +110,10 @@ def test_provenance_match_applies_floor(p):
     ),
 )
 def test_synthetic_profile_applies_cap(m, p):
+    # The re-saved edited carve-out (camera JPEG, stripped EXIF, strong artifacts,
+    # no provenance) is intentionally exempt from the synthetic cap and maps to
+    # the review band instead.
+    assume(not _is_resaved_edited(m, 0.75, p))
     score = compute_authenticity_score(_breakdown(m, 0.75, 1.0, p))
     assert score <= 0.26
 
