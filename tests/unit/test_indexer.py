@@ -57,7 +57,9 @@ def test_build_index_recreates_collection_when_present(
     mock_qdrant_client.get_collections.return_value.collections = [collection]
 
     mock_index = MagicMock()
-    mocker.patch("rag.indexer.VectorStoreIndex", return_value=mock_index)
+    mock_vector_store_index = mocker.patch(
+        "rag.indexer.VectorStoreIndex", return_value=mock_index
+    )
     mocker.patch("rag.indexer.StorageContext.from_defaults")
     nodes = [MagicMock()]
 
@@ -65,6 +67,11 @@ def test_build_index_recreates_collection_when_present(
     assert index is mock_index
     assert client is mock_qdrant_client
     mock_qdrant_client.delete_collection.assert_called_once_with(COLLECTION_NAME)
+    mock_vector_store_index.assert_called_once_with(
+        nodes,
+        storage_context=mocker.ANY,
+        embed_model=mock_embed_model,
+    )
 
 
 def test_build_index_skips_recreate_when_disabled(

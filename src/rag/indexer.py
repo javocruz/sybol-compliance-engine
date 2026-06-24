@@ -49,6 +49,8 @@ def build_index(
     # StorageContext.from_defaults is patched in tests; use it to create storage
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
     index = VectorStoreIndex(
-        nodes, storage_context=storage_context, embed_model=embed_model
+        nodes,
+        storage_context=storage_context,
+        embed_model=embed_model,
     )
     return index, client

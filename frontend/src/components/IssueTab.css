@@ -1,0 +1,37 @@
+.issue-tab-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.issue-tab-heading {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.issue-tab-intro {
+  margin: -0.5rem 0 1rem;
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.issue-tab-submit {
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.issue-tab-placeholder {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+@media (min-width: 768px) {
+  .issue-tab-grid {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}

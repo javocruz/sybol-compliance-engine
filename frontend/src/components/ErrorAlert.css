@@ -1,0 +1,18 @@
+.error-alert {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius);
+  color: var(--color-error-text);
+}
+
+.error-alert strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.error-alert p {
+  margin: 0;
+  font-size: 0.9375rem;
+}

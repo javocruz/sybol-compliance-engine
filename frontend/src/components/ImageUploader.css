@@ -1,0 +1,64 @@
+.drop-zone {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius);
+  padding: 2rem 1.5rem;
+  text-align: center;
+  background: var(--color-surface);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.drop-zone--over {
+  border-color: var(--color-accent);
+  background: var(--color-accent-light);
+}
+
+.drop-zone--disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.drop-zone-text {
+  margin: 0 0 0.25rem;
+  font-size: 0.9375rem;
+  color: var(--color-text);
+}
+
+.drop-zone-hint {
+  margin: 0 0 1rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.drop-zone-button {
+  display: inline-block;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-accent);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.drop-zone-button:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.drop-zone-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.image-uploader-selected {
+  margin: 0.75rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.image-uploader-error {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-non-compliant);
+}

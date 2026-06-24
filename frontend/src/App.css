@@ -1,0 +1,17 @@
+.app-main {
+  flex: 1;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+.app-content {
+  margin-top: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .app-main {
+    padding: 2rem 1.5rem 4rem;
+  }
+}

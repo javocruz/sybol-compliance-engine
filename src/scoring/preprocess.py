@@ -28,7 +28,14 @@ class PreprocessedImage:
 def _extract_exif_tags(raw_bytes: bytes) -> dict[str, Any]:
     tags: dict[str, Any] = {}
     stream = io.BytesIO(raw_bytes)
-    exif = exifread.process_file(stream, details=False)
+    # EXIF is best-effort metadata: a malformed/truncated file can make exifread
+    # raise (e.g. UnicodeDecodeError on a corrupt PNG chunk). Treat any parse
+    # failure as "no EXIF" so the real corruption is caught later by Image.load()
+    # and surfaced as a clean ScoringError rather than a 500.
+    try:
+        exif = exifread.process_file(stream, details=False)
+    except Exception:
+        return tags
     for tag_name, value in exif.items():
         if tag_name in ("JPEGThumbnail", "TIFFThumbnail", "Filename", "EXIF MakerNote"):
             continue

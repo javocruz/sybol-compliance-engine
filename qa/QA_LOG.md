@@ -49,6 +49,49 @@ These edits are heavily re-encoded JPEGs (strong artifacts). A second batch of
 
 ---
 
+## 2026-06-24 — TC-004 hardening, E2E scaffold, RAG-metrics harness (`devel`)
+
+**Branch base:** `devel` @ `ca9504d`. Merged this date: PR #9 (TC-004), PR #10 (E2E).
+
+### TC-004 — corrupted / malformed input (PR #9, merged)
+Dedicated suite (17 tests) for the "clean error, no crash" requirement: truncated
+JPEG/PNG, zero-byte, wrong magic bytes, oversized, valid-header/garbage-body, and
+the `/api/analyze` 400 path. **Bug found + fixed:** `_extract_exif_tags` in
+`scoring/preprocess.py` raised an unhandled `UnicodeDecodeError` on a malformed
+PNG, which would surface as a 500 from `/api/analyze`. Wrapped so corruption is
+caught cleanly at decode → typed `ScoringError` → 400. Resolution committed in the
+same PR.
+
+### E2E scaffold — `tests/e2e/` (PR #10, merged)
+Drives the live app over HTTP (TestClient), tiered to the demo plan and gated so
+blocked legs skip and auto-activate:
+- **Tier A (live today):** `/health`; `/api/analyze` on real golden images —
+  TC-001 (authentic→compliant), TC-002 (AI→non-compliant), HTTP determinism,
+  corrupt→400. **5 passed.**
+- **Tier B (`requires_rag`):** `/api/query` regulation refs — skips until Qdrant up.
+- **Tier C (`requires_rag`+`requires_sybol`):** `/api/issue` unsigned→signed VC —
+  skips until Sybol env set.
+- *Contract pinned for the demo:* `AnalyzeResponse.score_breakdown` serializes by
+  alias → JSON keys are `m/a/v/p`, not `metadata/artifact/visual/provenance`.
+
+### TC-005 — RAG metrics harness (this branch, ready)
+`tests/integration/test_rag_metrics.py` + labelled set
+`qa/test_cases/rag_eval/queries.json` (8 queries over the 5-PDF corpus, now in
+`research/regulations/`). Computes macro precision / recall and a corpus-closed
+hallucination check, asserting README targets (precision ≥80%, recall ≥75%,
+hallucination ≤5%). Gated on Qdrant + `MISTRAL_API_KEY`; **3 skip cleanly** until
+Engineering ingests the PDFs and brings Qdrant online, then runs with no change.
+
+### Status after this round
+- **Saba QA scope complete:** Step-4 suite (TC-006, property, determinism),
+  golden TC-001/002, TC-004, E2E scaffold, RAG-metrics harness — all written and
+  merged or PR-ready.
+- **Still blocked (not QA-owned):** TC-003 edited images (Youssef — still 0 in
+  manifest); live TC-005 run (Eng — Qdrant + ingest); Sybol signed VC (Pelayo/Iñigo).
+  *(Update 2026-06-25: TC-003 and Sybol signing now resolved — see entry above.)*
+
+---
+
 ## 2026-06-21 — Step 4 validation run on `devel`
 
 **Branch:** `devel` @ `5946b52` (Merge PR #6, `feat/scoring-golden-calibration`)

@@ -37,9 +37,9 @@ def test_metadata_penalizes_ai_software_tag():
     assert score < 0.5
 
 
-def test_metadata_png_without_exif_gets_moderate_penalty():
+def test_metadata_png_without_exif_gets_neutral_score():
     score = score_metadata(_preprocessed({}, content_type="image/png"))
-    assert 0.15 <= score <= 0.45
+    assert 0.40 <= score <= 0.52
 
 
 def test_metadata_future_timestamp_penalized():

@@ -30,11 +30,18 @@ def mock_embed_model(mocker):
 
 
 @pytest.fixture
-def mock_mistral(mocker):
+def mock_synthesis_llm(mocker):
     llm = MagicMock()
     llm.complete.return_value = "Synthesized compliance summary."
-    mocker.patch("rag.query.MistralAI", return_value=llm)
+    mocker.patch("rag.llm.get_synthesis_llm", return_value=llm)
+    mocker.patch("rag.query.get_synthesis_llm", return_value=llm)
     return llm
+
+
+@pytest.fixture
+def mock_mistral(mock_synthesis_llm):
+    """Backward-compatible alias for tests that patch Mistral via synthesis LLM."""
+    return mock_synthesis_llm
 
 
 @pytest.fixture
