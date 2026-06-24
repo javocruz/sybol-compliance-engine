@@ -1,0 +1,220 @@
+.query-tab-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.query-tab-heading {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.query-tab-intro {
+  margin: -0.5rem 0 1rem;
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.query-tab-llm-toggle {
+  border: none;
+  margin: 0 0 1.25rem;
+  padding: 0;
+}
+
+.query-tab-llm-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.query-tab-llm-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-body-bg);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.query-tab-llm-option:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+.query-tab-llm-option--active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-light);
+}
+
+.query-tab-llm-option:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.query-tab-llm-option-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.query-tab-llm-option-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.query-tab-results-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.query-tab-results-header .query-tab-heading {
+  margin-bottom: 0;
+}
+
+.query-tab-model-badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-accent);
+  background: var(--color-accent-light);
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+}
+
+.query-tab-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.query-tab-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 7rem;
+}
+
+.query-tab-textarea:focus {
+  outline: 2px solid var(--color-accent-light);
+  border-color: var(--color-accent);
+}
+
+.query-tab-textarea:disabled {
+  background: var(--color-body-bg);
+  opacity: 0.8;
+}
+
+.query-tab-hint {
+  margin: 0.375rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.query-tab-examples {
+  margin-top: 1.25rem;
+}
+
+.query-tab-examples-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.query-tab-example-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.query-tab-example-chip {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-body-bg);
+  color: var(--color-text);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.query-tab-example-chip:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  background: var(--color-accent-light);
+}
+
+.query-tab-example-chip:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.query-tab-submit {
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.query-tab-placeholder {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.query-tab-answer-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.query-tab-answer {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.query-tab-answer p {
+  margin: 0 0 0.75rem;
+}
+
+.query-tab-answer p:last-child {
+  margin-bottom: 0;
+}
+
+.query-tab-refs-heading {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+}
+
+.query-tab-refs-count {
+  font-weight: 400;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+@media (min-width: 768px) {
+  .query-tab-grid {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}

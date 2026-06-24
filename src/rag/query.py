@@ -1,18 +1,12 @@
 import logging
-import os
 
 from llama_index.core import VectorStoreIndex
-from llama_index.llms.mistralai import MistralAI
 
+from .llm import LlmProvider, get_ollama_model, get_synthesis_llm
 from .models import ComplianceResult, RegulationRef
+from .source_urls import resolve_source_url
 
 logger = logging.getLogger(__name__)
-
-SYNTHESIS_PROMPT = """
-You are a EU regulatory compliance expert. Using ONLY the provided regulation excerpts,
-answer the query. Be precise about which article you are citing.
-If a requirement is not covered by the excerpts, say so explicitly.
-"""
 
 
 def _validate_refs(refs: list[RegulationRef]) -> list[RegulationRef]:
@@ -34,12 +28,9 @@ def query_regulations(
     query: str,
     index: VectorStoreIndex,
     regulation_type: str | None = None,
+    llm_provider: LlmProvider = "mistral",
 ) -> ComplianceResult:
-    llm = MistralAI(
-        model="mistral-large-latest",
-        api_key=os.environ["MISTRAL_API_KEY"],
-        system_prompt=SYNTHESIS_PROMPT,
-    )
+    llm = get_synthesis_llm(llm_provider)
 
     filters = None
     if regulation_type:
@@ -64,13 +55,26 @@ def query_regulations(
             RegulationRef(
                 regulation=meta.get("regulation_name", "Unknown"),
                 article=meta.get("article_number", "Unknown"),
-                source_url=meta.get("source_path", ""),
+                source_url=resolve_source_url(
+                    meta.get("source_path", ""),
+                    meta.get("regulation_type"),
+                ),
                 excerpt=node.node.get_content()[:300],
             )
         )
 
     context = "\n\n---\n\n".join(n.node.get_content() for n in nodes)
-    response = llm.complete(f"Context:\n{context}\n\nQuery: {query}")
+    prompt = f"Context:\n{context}\n\nQuery: {query}"
+
+    try:
+        response = llm.complete(prompt)
+    except Exception as exc:
+        if llm_provider == "ollama":
+            raise RuntimeError(
+                "Ollama synthesis failed. Ensure Ollama is running "
+                f"(`ollama serve`) and model is pulled (`ollama pull {get_ollama_model()}`)."
+            ) from exc
+        raise RuntimeError("Mistral API synthesis failed.") from exc
 
     return ComplianceResult(
         summary=str(response),

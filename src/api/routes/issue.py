@@ -19,6 +19,7 @@ from src.credentials.sybol_client import (
     SybolSigningError,
 )
 from src.credentials.vc_builder import build_vc_payload
+from src.rag.llm import normalize_provider
 from src.rag.query import query_regulations
 from src.scoring.pipeline import score_image
 from src.scoring.preprocess import ScoringError
@@ -64,11 +65,15 @@ async def issue(
         f"{result.compliance_status.value}?"
     )
     try:
-        rag = query_regulations(rag_query, index)
+        rag = query_regulations(
+            rag_query,
+            index,
+            llm_provider=normalize_provider(settings.default_llm_provider),
+        )
     except Exception as exc:
         raise HTTPException(
             503,
-            detail=f"RAG pipeline failed — Mistral or Qdrant may be unavailable: {exc}",
+            detail=f"RAG pipeline failed — LLM or Qdrant may be unavailable: {exc}",
         ) from exc
 
     credential_id = f"urn:uuid:{uuid.uuid4()}"

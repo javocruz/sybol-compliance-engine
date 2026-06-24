@@ -52,6 +52,15 @@ class Settings:
     sybol_request_timeout: float = field(
         default_factory=lambda: float(os.getenv("SYBOL_REQUEST_TIMEOUT", "30.0"))
     )
+    default_llm_provider: str = field(
+        default_factory=lambda: os.getenv("DEFAULT_LLM_PROVIDER", "mistral")
+    )
+    ollama_base_url: str = field(
+        default_factory=lambda: os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    )
+    ollama_model: str = field(
+        default_factory=lambda: os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
+    )
 
 
 def _optional_int(value: str | None) -> int | None:

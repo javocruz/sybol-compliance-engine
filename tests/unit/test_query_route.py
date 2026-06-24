@@ -49,6 +49,8 @@ def test_query_returns_structured_regulation_refs(
         assert response.status_code == 200
         body = response.json()
         assert body["answer"] == "GDPR Article 5 requires lawful processing."
+        assert body["llm_provider"] == "mistral"
+        assert body["llm_model"] == "mistral-large-latest"
         assert len(body["regulation_refs"]) == 1
         ref = body["regulation_refs"][0]
         assert ref["regulation"] == "GDPR"
@@ -59,7 +61,7 @@ def test_query_returns_structured_regulation_refs(
         app.dependency_overrides.clear()
 
 
-def test_query_calls_query_regulations_with_question(
+def test_query_calls_query_regulations_with_question_and_provider(
     mocker, mock_index, mock_compliance_result
 ):
     mock_query = mocker.patch(
@@ -72,10 +74,40 @@ def test_query_calls_query_regulations_with_question(
         client = TestClient(app, raise_server_exceptions=False)
         client.post(
             "/api/query",
-            json={"question": "AI transparency requirements"},
+            json={
+                "question": "AI transparency requirements",
+                "llm_provider": "ollama",
+            },
         )
 
-        mock_query.assert_called_once_with("AI transparency requirements", mock_index)
+        mock_query.assert_called_once_with(
+            "AI transparency requirements",
+            mock_index,
+            llm_provider="ollama",
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_query_ollama_response_includes_model_name(
+    mocker, mock_index, mock_compliance_result, monkeypatch
+):
+    monkeypatch.setenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
+    mocker.patch(
+        "src.api.routes.query.query_regulations",
+        return_value=mock_compliance_result,
+    )
+    app.dependency_overrides[get_index] = lambda: mock_index
+
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        response = client.post(
+            "/api/query",
+            json={"question": "test", "llm_provider": "ollama"},
+        )
+        body = response.json()
+        assert body["llm_provider"] == "ollama"
+        assert body["llm_model"] == "qwen2.5:7b-instruct"
     finally:
         app.dependency_overrides.clear()
 
