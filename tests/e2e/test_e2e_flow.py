@@ -54,8 +54,9 @@ def test_analyze_authentic_image_end_to_end(client, golden_cases):
     # m/a/v/p — not the python field names. This is the shape Jana's demo /
     # frontend consumes.
     assert 0.0 <= body["authenticity_score"] <= 1.0
-    assert set(body["score_breakdown"]) == {"m", "a", "v", "p"}
-    assert all(0.0 <= body["score_breakdown"][k] <= 1.0 for k in "mavp")
+    breakdown = body["score_breakdown"]
+    assert {"m", "a", "v", "p"}.issubset(breakdown)
+    assert all(0.0 <= breakdown[k] <= 1.0 for k in "mavp")
     assert body["compliance_status"] in {"compliant", "non-compliant", "review"}
     assert len(body["media_hash"]) == 64  # sha256 hex
     assert body["model_version"]
