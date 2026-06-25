@@ -1,6 +1,8 @@
-# Notes for Alex — demo handoff
+# Notes for Alex — demo handoff & server experiments
 
-Last updated: 2026-06-25 (Javier). Branch `feat/local-ready` merged into `main`.
+Last updated: 2026-06-25 (Javier). Everything below is on **`main`** (PR #12 merged).
+
+Use this doc to run the stack locally, understand what's shipped, and pick up the EC2 deploy when disk is unblocked.
 
 ---
 
@@ -10,7 +12,7 @@ Last updated: 2026-06-25 (Javier). Branch `feat/local-ready` merged into `main`.
 > `SYBOL_ID_TOKEN=eyJ...`
 
 **We do NOT need Sybol to "create" these tokens for us.** They are short-lived
-(~1 hour) and **generated on the fly** by our own client every time we call the
+(~1 hour) and **generated on the fly** by our client every time we call the
 Sybol API.
 
 - `POST /auth/login` returning **404** on develop is expected — that endpoint
@@ -38,119 +40,208 @@ SYBOL_DOCUMENT_ID=0acdb1ed-4cd2-41a4-917a-b7270d6166b9   # MEDIA_COMPLIANCE_IE c
 rare case Cognito login fails — leave them unset and the client logs in itself.
 
 The wallet UI ( https://sybol.develop.wallet.sybol.id/ , login `info@ie.id` )
-loads fine and already shows our issued **"Media Compliance"** credentials with
-all 11 claims, so the full signing path is confirmed end to end.
+loads fine and shows issued **"Media Compliance"** credentials (verified, all 11
+claims). Full signing path is confirmed end to end.
 
 ---
 
-## What is done (all on `main` now)
+## What we shipped on `main` (Jun 25)
 
-- **Scoring TC-001/002/003**: golden set is 77 images (30 authentic / 37 AI /
-  10 edited from Youssef). Regression passes **77/77**. Edited images now land in
-  the `review` band via a new "re-saved edited" profile in `src/scoring/`.
-- **Full pipeline** works locally: `/api/analyze`, `/api/query` (Mistral + RAG),
-  `/api/issue` (Sybol-signed VC), and the `sybol_e2e_full_issue` script.
-- **RAG citations** now resolve real article numbers (EN "Article" + ES
-  "Artículo"/"Art.", carried forward across chunks). Re-ingest with
-  `PYTHONPATH=src python3 -m scripts.ingest` if you rebuild the index.
-- **Frontend** (your React app) builds and talks to the API. Fixed the Vite dev
-  proxy to target `127.0.0.1` (was `localhost` → could resolve to IPv6 `::1` and
-  break the UI→API connection), and regulation "view source" links now honor
-  `VITE_API_BASE_URL`.
-- **Tests**: full suite 171 passed / 2 env-skipped. Frontend `npm run build` ok.
+### Scoring & golden dataset
+- Golden set is **77 images**: 30 authentic / 37 AI / **10 edited** (Youssef).
+- Regression **77/77** (TC-001 compliant, TC-002 non-compliant, TC-003 review).
+- Edited images use a **re-saved edited profile** in `src/scoring/` (stripped-EXIF
+  camera JPEGs, `m ≈ 0.39` → review band 0.35–0.60, exempt from synthetic cap).
+- **Platt scaling stays off** (`PLATT_ENABLED = False`). Profile rules are what
+  calibrate the bands; enabling Platt without refitting would risk breaking 77/77.
+
+### Pipeline (local, verified)
+- `/api/analyze`, `/api/query` (Mistral + Qdrant), `/api/issue` (Sybol-signed VC).
+- `scripts/sybol_e2e_full_issue` — score → RAG → audit → signed VC.
+- Provenance index: **30 authentic reference photos** in `qa/test_cases/authentic/`
+  (authentic images get `p=1.0`; AI/edited get `p=0.0` unless matched).
+
+### RAG
+- Five PDFs ingested locally (~1795 Qdrant chunks).
+- Article extraction at ingest: EN "Article" + ES "Artículo"/"Art." with
+  carry-forward across chunks; UI hides "Article" chip when unknown.
+- TC-005 harness in `tests/integration/test_rag_metrics.py` (3 tests); needs
+  Qdrant + `MISTRAL_API_KEY` to run live metrics.
+
+### Frontend (your React app)
+- Merged from `devel`: Analyze / Query / Issue tabs.
+- **Vite proxy fix**: targets `127.0.0.1:8000` (not `localhost` — avoids IPv6
+  `::1` breakage on macOS).
+- Regulation PDF links honor `VITE_API_BASE_URL` (same as `api/client.ts`).
+- Build: `cd frontend && npm ci && npm run build` — API serves `frontend/dist`
+  at `/` when present.
+
+### Tests & QA
+- **173 tests** collected by pytest (was ~122 in older slides — update decks).
+- TC-003 done, TC-004 done (7 corrupted-input tests), TC-005 harness done.
+- Full run (with env): `PYTHONPATH=src pytest tests/unit tests/integration tests/e2e -q`
+
+### Docs
+- `docs/DEMO_RUNBOOK.md` — Cognito login, wallet URL, recommended demo path.
+- `qa/QA_LOG.md` — TC-003 integration entry (2026-06-25).
+
+---
+
+## Quick start — experiment locally (Alex)
+
+**Prerequisites:** Docker (Qdrant), `src/.env` from `src/.env.example` + secrets.
+
+```bash
+git checkout main && git pull origin main
+
+# 1. Qdrant
+docker ps | grep qdrant || docker run -d --name sybol-qdrant -p 6333:6333 qdrant/qdrant
+
+# 2. Python deps (pick one)
+poetry install --with dev
+# or: python3 -m venv .venv && source .venv/bin/activate && pip install poetry && poetry install --with dev
+
+# 3. Ingest (only if Qdrant volume is empty)
+PYTHONPATH=src python3 -m scripts.ingest
+
+# 4. API
+export $(grep -v '^#' src/.env | xargs)   # or rely on dotenv in app
+PYTHONPATH=src uvicorn src.api.main:app --host 127.0.0.1 --port 8000
+
+# 5. Frontend (separate terminal)
+cd frontend && npm ci && npm run dev    # http://127.0.0.1:5173 → proxies to :8000
+
+# 6. Smoke
+./scripts/check_demo_readiness.sh
+PYTHONPATH=src python3 -m scripts.sybol_e2e_full_issue qa/test_cases/golden/authentic/ar20.jpg
+```
+
+**Demo images to try:**
+
+| File | Expected |
+|------|----------|
+| `qa/test_cases/golden/authentic/ar20.jpg` | ~0.83, compliant (iPhone 14 EXIF) |
+| `qa/test_cases/golden/ai_generated/beach_dalle.png` | 0.26, non-compliant (synthetic cap) |
+| `qa/test_cases/golden/edited/edit1.jpg` | ~0.38, review |
+
+**Bundled UI (same as server plan):** build with empty API base, API serves SPA:
+
+```bash
+cd frontend && VITE_API_BASE_URL= npm run build
+# then only uvicorn on :8000 — open http://127.0.0.1:8000/
+```
+
+---
+
+## EC2 server (`52.210.252.91`) — status & deploy plan
+
+Pelayo's VM for IE/Sybol experiments.
+
+| Item | Status |
+|------|--------|
+| SSH as `javier` | Works — key `~/.ssh/sybol_ie_javier` |
+| SSH as `alex` | Should work once your key is on the box (ask Pelayo) |
+| Docker group | **Fixed** — `javier` and `alex` in `docker`; `docker ps` OK |
+| Sudo / systemd | **Blocked** — `sudo` needs password; ask Pelayo for unit install or passwordless sudo for deploy |
+| Disk | **Blocked** — `/` is **85% full (~2.9 GB free)** on a 20 GB volume. Plan requires **≥ 5 GB** before pip/torch install. Ask Pelayo to **grow EBS to 40 GB** or free space |
+| Qdrant / API on server | **Not deployed yet** — ports 8000 and 6333 were free when checked |
+| AWS SG port 8000 | **Closed** externally until API runs + Pelayo opens inbound TCP 8000 |
+
+### When disk is fixed — deploy sequence (summary)
+
+Full steps were written in the deploy plan; condensed for you:
+
+```bash
+# SSH
+ssh -i ~/.ssh/sybol_ie_javier javier@52.210.252.91
+
+# Clone
+git clone https://github.com/javocruz/sybol-compliance-engine.git
+cd sybol-compliance-engine && git checkout main
+
+# Qdrant (localhost only — do NOT bind 6333 to 0.0.0.0)
+docker run -d --name sybol-qdrant --restart unless-stopped \
+  -p 127.0.0.1:6333:6333 -v sybol_qdrant_data:/qdrant/storage qdrant/qdrant
+
+# Python — IMPORTANT: CPU-only torch on this host (no GPU)
+python3 -m venv .venv && source .venv/bin/activate
+pip install --upgrade pip
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+pip install poetry
+poetry export -f requirements.txt --without-hashes --only main -o /tmp/req.txt
+grep -v '^torch==' /tmp/req.txt > /tmp/req-notorch.txt   # torch already installed
+pip install -r /tmp/req-notorch.txt
+
+# Secrets — copy src/.env from a teammate (never commit); chmod 600
+# Set QDRANT_URL=http://127.0.0.1:6333
+
+# Ingest + API
+export PYTHONPATH=src HF_HOME=$HOME/.cache/huggingface
+python3 -m scripts.ingest
+# Prefer systemd (needs sudo); fallback: tmux + uvicorn on 0.0.0.0:8000
+
+# Frontend: build on your laptop, rsync dist/
+# cd frontend && VITE_API_BASE_URL= npm run build
+# rsync -avz -e "ssh -i ~/.ssh/sybol_ie_javier" dist/ javier@52.210.252.91:~/sybol-compliance-engine/frontend/dist/
+```
+
+**Public demo URL (once up):** `http://52.210.252.91:8000/` (API + bundled UI).
+
+**Rollback:** `docker stop sybol-qdrant`; stop uvicorn/systemd; `rm -rf ~/sybol-compliance-engine`.
 
 ---
 
 ## What is left for the demo
 
-1. **Visual click-through of the UI** — run it and click Analyze / Query / Issue
-   once on screen (everything is verified programmatically, just not by eye):
-
-   ```bash
-   # terminal 1
-   PYTHONPATH=src uvicorn src.api.main:app --host 127.0.0.1 --port 8000
-   # terminal 2
-   cd frontend && npm ci && npm run dev    # http://127.0.0.1:5173
-   ```
-
-2. **Decide where we present from.**
-   - **Local** is ready today (recommended, lowest risk).
-   - **Server (`52.210.252.91`)** is still blocked: `javier` is not in the
-     `docker` group, so Qdrant can't run there. Needs Pelayo to add us to
-     `docker`, then ingest + run uvicorn (systemd). Treat as stretch.
-
-3. **Demo-morning pre-flight**: `./scripts/check_demo_readiness.sh` (expect all
-   `[OK]`), Qdrant + uvicorn up, a few test images ready (1 authentic, 1 AI,
-   1 edited).
-
-## Known cosmetic limits (safe to demo)
-
-- EU AI Act citations retrieved from **recitals/preamble** show no article number
-  (there isn't one — they precede the articles). The UI hides the chip in that
-  case, so it just shows "EU AI Act". Spanish regs and AI Act article bodies show
-  real numbers.
-- `evidence_url` in issued VCs points at `http://localhost:6333/...` (the local
-  Qdrant audit point). Fine for a local demo; needs a public URL if we go server.
+1. **Local demo** — ready now (recommended until server disk is grown).
+2. **Server demo** — waiting on **disk ≥ 5 GB** (+ optionally SG :8000 + systemd).
+3. **Visual UI click-through** — programmatically green; worth one manual pass.
+4. **Morning pre-flight:** `./scripts/check_demo_readiness.sh`, warm one analyze + one issue.
 
 ---
 
-## Development backlog (post-demo / general)
+## Known cosmetic limits (safe to demo)
 
-Not needed for tomorrow, but this is the real "what's left to build/harden" list.
+- EU AI Act **recital** chunks have no article number — UI shows regulation name only.
+- `evidenceUrl` in VCs uses `QDRANT_URL` (localhost on laptop) — not clickable from wallet for external viewers.
+- AI images often show **exactly 0.26** — synthetic-profile **cap**, not a bug; raw scores differ slightly below the cap.
+- **Platt disabled** — document as optional future work, not a missing switch.
+
+---
+
+## Development backlog (post-demo)
 
 ### Deployment & infra
-- **Server deploy (`52.210.252.91`)**: add `javier` (+ `alex`) to the `docker`
-  group, run Qdrant there, ingest the corpus, run the API under **systemd** (not a
-  foreground uvicorn), open port 8000 / put it behind a reverse proxy.
-- **Railway path**: the Dockerfile is API-only — it does not build the frontend.
-  Either add an `npm ci && npm run build` stage that emits `frontend/dist`, or
-  deploy `frontend/` as a separate static site with `VITE_API_BASE_URL` pointing
-  at the API. (See `docs/RAILWAY_SETUP.md`.)
-- **Qdrant persistence**: confirm a mounted volume + a backup/restore plan so the
-  index survives restarts; document re-ingest as the recovery step.
-- **Public `evidence_url`**: today it points at local Qdrant. Production VCs need a
-  durable, publicly resolvable audit URL (object storage or an API audit route).
-- **Secrets management**: move off plaintext `src/.env` for prod (Railway/Vercel
-  env vars or a secrets manager). Never commit `.env` or `deploy/` keys.
+- Grow EC2 disk / free space → complete server deploy (Qdrant + ingest + systemd + frontend dist).
+- Open **inbound TCP 8000** on AWS security group for audience URL.
+- Railway: Dockerfile is API-only; add frontend build stage or separate static deploy.
+- Public `evidence_url` (not raw Qdrant localhost).
+- Secrets off plaintext `src/.env` in prod.
 
 ### Sybol / credentials
-- **Token caching**: we re-login to Cognito on every issue call (~adds latency).
-  Cache the access token for its ~1h lifetime and refresh on expiry.
-- **VC verification + revocation**: we issue signed VCs but have no verify flow or
-  `credentialStatus`/revocation story. Add a verify endpoint and decide on
-  revocation.
+- Token caching (avoid Cognito login every issue).
+- VC verify + revocation flow.
+- VC Data Model **2.0** migration (we emit **1.1** today).
 
-### RAG quality (TC-005)
-- **Article granularity for the AI Act**: recital chunks have no article. Consider
-  splitting/tagging at article boundaries during ingestion, and optionally
-  capturing recital numbers, so EU AI Act citations are article-precise.
-- **Full green metrics run**: precision/recall/hallucination harness is wired and
-  labels are aligned, but a clean pass is gated by Mistral dev-tier rate limits.
-  Run it against a higher-tier key (or Ollama) to record real numbers.
-- **Production LLM resilience**: the 429 backoff lives only in the test harness.
-  The production `/api/query` makes a single call (fine for demo), but for
-  throughput add retry/backoff there and/or a paid Mistral tier.
-- **Ollama path**: integrated but unvalidated end-to-end — needs `ollama serve` +
-  model pulled, then verify `/api/query?llm_provider=ollama` as an offline fallback.
+### RAG (TC-005)
+- Record formal precision/recall/hallucination numbers (harness ready; Mistral 429 on batch runs).
+- Ollama path: `llm_provider=ollama` — needs local `ollama serve` + model pull.
+- AI Act article-level tagging for recital chunks.
 
 ### Scoring
-- **Milder edited batch**: current TC-003 images are heavily re-encoded JPEGs. A
-  batch of light edits that keep EXIF would exercise the original `EDITED_PROFILE`
-  path and broaden coverage.
-- **Real-world robustness**: thresholds are calibrated to the 77-image golden set;
-  validate against a larger/more varied set and consider Platt calibration (off by
-  default) once we have enough labelled data.
+- Milder edited images (EXIF retained) for broader TC-003.
+- Larger hold-out set before enabling Platt (`PLATT_ENABLED` stays `False` for now).
 
 ### Frontend
-- **Real browser QA**: error states, loading states, large-file handling,
-  responsive/mobile, and the Issue tab against a slow `/api/issue`.
-- **No frontend tests**: add a minimal vitest/RTL setup for the API client and the
-  results components.
+- Browser QA (errors, loading, mobile).
+- Optional vitest for API client + result components.
 
-### Engineering hygiene
-- **CI**: add GitHub Actions to run `pytest` + `npm run build` on every PR
-  (Bugbot is manual today).
-- **Observability**: structured logging + error tracking; silence/configure the
-  OpenTelemetry import warning.
-- **Remove `deploy/` keys from the repo working tree** — keep SSH keys outside the
-  project directory.
+### Engineering
+- GitHub Actions: pytest + `npm run build` on PRs.
+- Do not commit `deploy/` SSH key material — keep keys outside the repo.
+
+---
+
+## Message template for Pelayo (disk)
+
+> Hola Pelayo — ya tenemos docker OK en el servidor. Para desplegar la API necesitamos más espacio: el disco raíz está al 85% (~2.9 GB libres) y la instalación de PyTorch + modelos necesita varios GB. ¿Podéis ampliar el volumen EBS de 20 GB a 40 GB? También necesitaremos abrir el puerto **8000** en el security group para la demo. Gracias.
