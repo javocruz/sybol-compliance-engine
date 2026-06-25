@@ -21,6 +21,9 @@ class Settings:
     qdrant_audit_collection: str = field(
         default_factory=lambda: os.getenv("QDRANT_AUDIT_COLLECTION", "media_audit")
     )
+    public_base_url: str | None = field(
+        default_factory=lambda: os.getenv("PUBLIC_BASE_URL") or None
+    )
     # Sybol BusinessWallet API (OpenAPI v4)
     sybol_api_base_url: str = field(
         default_factory=lambda: os.getenv(

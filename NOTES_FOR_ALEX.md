@@ -133,27 +133,27 @@ cd frontend && VITE_API_BASE_URL= npm run build
 
 ---
 
-## EC2 server (`52.210.252.91`) — status & deploy plan
+## EC2 server (`54.154.92.29`) — status & deploy plan
 
-Pelayo's VM for IE/Sybol experiments.
+Pelayo's VM for IE/Sybol experiments. **IP changed 2026-06-25** after server restart (was `52.210.252.91`).
 
 | Item | Status |
 |------|--------|
 | SSH as `javier` | Works — key `~/.ssh/sybol_ie_javier` |
 | SSH as `alex` | Should work once your key is on the box (ask Pelayo) |
-| Docker group | **Fixed** — `javier` and `alex` in `docker`; `docker ps` OK |
-| Sudo / systemd | **Blocked** — `sudo` needs password; ask Pelayo for unit install or passwordless sudo for deploy |
-| Disk | **Blocked** — `/` is **85% full (~2.9 GB free)** on a 20 GB volume. Plan requires **≥ 5 GB** before pip/torch install. Ask Pelayo to **grow EBS to 40 GB** or free space |
-| Qdrant / API on server | **Not deployed yet** — ports 8000 and 6333 were free when checked |
+| Docker group | **OK** — `docker ps` works |
+| Disk | **Fixed** — **38 GB** volume, **~23 GB free** (41% used) — ready for torch + models |
+| Sudo / systemd | **Blocked** — `sudo` needs password; use tmux for uvicorn or ask Pelayo for systemd |
+| Qdrant / API on server | **Not deployed yet** — no containers, no repo clone (fresh after restart) |
 | AWS SG port 8000 | **Closed** externally until API runs + Pelayo opens inbound TCP 8000 |
 
-### When disk is fixed — deploy sequence (summary)
+### Deploy sequence (summary)
 
 Full steps were written in the deploy plan; condensed for you:
 
 ```bash
 # SSH
-ssh -i ~/.ssh/sybol_ie_javier javier@52.210.252.91
+ssh -i ~/.ssh/sybol_ie_javier javier@54.154.92.29
 
 # Clone
 git clone https://github.com/javocruz/sybol-compliance-engine.git
@@ -174,29 +174,30 @@ pip install -r /tmp/req-notorch.txt
 
 # Secrets — copy src/.env from a teammate (never commit); chmod 600
 # Set QDRANT_URL=http://127.0.0.1:6333
+# Set PUBLIC_BASE_URL=http://54.154.92.29:8000  (public evidenceUrl for VCs)
 
 # Ingest + API
 export PYTHONPATH=src HF_HOME=$HOME/.cache/huggingface
 python3 -m scripts.ingest
+# GET /api/audit/{id} serves audit JSON publicly when PUBLIC_BASE_URL is set
 # Prefer systemd (needs sudo); fallback: tmux + uvicorn on 0.0.0.0:8000
 
 # Frontend: build on your laptop, rsync dist/
 # cd frontend && VITE_API_BASE_URL= npm run build
-# rsync -avz -e "ssh -i ~/.ssh/sybol_ie_javier" dist/ javier@52.210.252.91:~/sybol-compliance-engine/frontend/dist/
+# rsync -avz -e "ssh -i ~/.ssh/sybol_ie_javier" dist/ javier@54.154.92.29:~/sybol-compliance-engine/frontend/dist/
 ```
 
-**Public demo URL (once up):** `http://52.210.252.91:8000/` (API + bundled UI).
+**Public demo URL (once up):** `http://54.154.92.29:8000/` (API + bundled UI).
 
 **Rollback:** `docker stop sybol-qdrant`; stop uvicorn/systemd; `rm -rf ~/sybol-compliance-engine`.
 
 ---
 
-## What is left for the demo
+## What is left (post-demo)
 
-1. **Local demo** — ready now (recommended until server disk is grown).
-2. **Server demo** — waiting on **disk ≥ 5 GB** (+ optionally SG :8000 + systemd).
-3. **Visual UI click-through** — programmatically green; worth one manual pass.
-4. **Morning pre-flight:** `./scripts/check_demo_readiness.sh`, warm one analyze + one issue.
+1. **Server deploy** — disk is ready; clone repo → Qdrant → venv → ingest → uvicorn → rsync frontend → open SG :8000.
+2. **Public evidence URL** — `evidenceUrl` still points at localhost Qdrant unless we add a public audit route.
+3. **Docs/CI cleanup** — update `PROJECT_STATUS.md`, export RAG metrics to `qa/rag_eval/results.json`.
 
 ---
 
@@ -212,7 +213,7 @@ python3 -m scripts.ingest
 ## Development backlog (post-demo)
 
 ### Deployment & infra
-- Grow EC2 disk / free space → complete server deploy (Qdrant + ingest + systemd + frontend dist).
+- Complete EC2 deploy on `54.154.92.29` (disk OK; Qdrant + ingest + uvicorn + frontend dist).
 - Open **inbound TCP 8000** on AWS security group for audience URL.
 - Railway: Dockerfile is API-only; add frontend build stage or separate static deploy.
 - Public `evidence_url` (not raw Qdrant localhost).
@@ -242,6 +243,6 @@ python3 -m scripts.ingest
 
 ---
 
-## Message template for Pelayo (disk)
+## Message template for Pelayo (SG port 8000)
 
-> Hola Pelayo — ya tenemos docker OK en el servidor. Para desplegar la API necesitamos más espacio: el disco raíz está al 85% (~2.9 GB libres) y la instalación de PyTorch + modelos necesita varios GB. ¿Podéis ampliar el volumen EBS de 20 GB a 40 GB? También necesitaremos abrir el puerto **8000** en el security group para la demo. Gracias.
+> Hola Pelayo — gracias por el reinicio y el disco ampliado. La nueva IP es 54.154.92.29 y SSH funciona. ¿Podéis abrir el puerto **8000** en el security group para la URL pública de la demo? Gracias.

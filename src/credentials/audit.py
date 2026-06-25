@@ -8,6 +8,15 @@ from src.rag.models import ComplianceResult
 from src.scoring.models import ScoringResult
 
 
+def build_evidence_url(point_id: str, settings: Settings) -> str:
+    """Public audit URL when PUBLIC_BASE_URL is set; else raw Qdrant point URL."""
+    public = (settings.public_base_url or "").rstrip("/")
+    if public:
+        return f"{public}/api/audit/{point_id}"
+    collection = settings.qdrant_audit_collection
+    return f"{settings.qdrant_url}/collections/{collection}/points/{point_id}"
+
+
 def _ensure_collection(client: QdrantClient, collection_name: str) -> None:
     existing = {c.name for c in client.get_collections().collections}
     if collection_name not in existing:
@@ -59,4 +68,21 @@ def write_audit_record(
         points=[PointStruct(id=point_id, vector=[0.0], payload=payload)],
     )
 
-    return f"{settings.qdrant_url}/collections/{collection}/points/{point_id}"
+    return build_evidence_url(point_id, settings)
+
+
+def read_audit_record(
+    point_id: str,
+    client: QdrantClient,
+    settings: Settings,
+) -> dict | None:
+    """Return audit payload for a credential point id, or None if missing."""
+    collection = settings.qdrant_audit_collection
+    try:
+        points = client.retrieve(collection_name=collection, ids=[point_id])
+    except Exception:
+        return None
+    if not points:
+        return None
+    payload = points[0].payload
+    return dict(payload) if payload else None

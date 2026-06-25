@@ -8,9 +8,11 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.api.routes.analyze import router as analyze_router
+from src.api.routes.audit import router as audit_router
 from src.api.routes.issue import router as issue_router
 from src.api.routes.query import router as query_router
 from src.api.routes.regulations import router as regulations_router
+from src.api.routes.status import router as status_router
 from src.rag.pipeline import load_index
 
 logger = logging.getLogger(__name__)
@@ -49,6 +51,8 @@ async def health():
 app.include_router(analyze_router, prefix="/api")
 app.include_router(query_router, prefix="/api")
 app.include_router(issue_router, prefix="/api")
+app.include_router(audit_router, prefix="/api")
+app.include_router(status_router, prefix="/api")
 app.include_router(regulations_router, prefix="/api")
 
 _dist = Path(__file__).resolve().parents[2] / "frontend" / "dist"

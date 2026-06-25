@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from src.api.dependencies import Settings
-from src.credentials.audit import write_audit_record
+from src.credentials.audit import build_evidence_url, write_audit_record
 from src.rag.models import ComplianceResult, RegulationRef
 from src.scoring.models import ComplianceStatus, ScoringResult, SignalBreakdown
 
@@ -128,3 +128,33 @@ def test_returns_url_containing_point_id(scoring_result, compliance_result, sett
     assert "abc-123" in url
     assert "media_audit" in url
     assert url.startswith("http://localhost:6333")
+
+
+def test_returns_public_url_when_configured(scoring_result, compliance_result):
+    settings = Settings(
+        qdrant_url="http://127.0.0.1:6333",
+        qdrant_audit_collection="media_audit",
+        public_base_url="http://54.154.92.29:8000",
+    )
+    client = _make_client(["media_audit"])
+    url = write_audit_record(
+        scoring_result, compliance_result, "urn:uuid:abc-123", client, settings
+    )
+    assert url == "http://54.154.92.29:8000/api/audit/abc-123"
+
+
+def test_build_evidence_url_public():
+    settings = Settings(public_base_url="http://example.com:8000/")
+    assert (
+        build_evidence_url("pt-1", settings)
+        == "http://example.com:8000/api/audit/pt-1"
+    )
+
+
+def test_build_evidence_url_qdrant_fallback():
+    settings = Settings(
+        qdrant_url="http://localhost:6333",
+        qdrant_audit_collection="media_audit",
+    )
+    url = build_evidence_url("pt-1", settings)
+    assert url == "http://localhost:6333/collections/media_audit/points/pt-1"

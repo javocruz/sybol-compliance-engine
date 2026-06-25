@@ -33,3 +33,6 @@ FETCH_HEAD
 .coverage.*
 htmlcov/
 .pytest_cache/
+
+# Deploy secrets
+deploy/ssh-keys-for-pelayo.txt
