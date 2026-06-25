@@ -1,10 +1,10 @@
 {
-  "description": "Labelled RAG evaluation set for TC-005 (Saba). Each query has the set of regulation_name values that a correct retrieval should surface, drawn from the 5-PDF corpus in research/regulations/ (GDPR, EU AI Act, Codigo Penal, Ley 13/2022, LOPDGDD). 'expected_regulations' is matched case-insensitively against the regulation_name metadata that query_regulations puts on each RegulationRef. 'corpus_regulations' is the closed set used for the hallucination check: any returned regulation not in this set is a hallucinated citation.",
+  "description": "Labelled RAG evaluation set for TC-005 (Saba). Each query has the set of regulation_name values that a correct retrieval should surface, drawn from the 5-PDF corpus in research/regulations/. 'expected_regulations' and 'corpus_regulations' must match the regulation_name metadata produced by ingestion exactly (case-insensitive); the values below mirror the ingested index (e.g. 'Código Penal (LO 10/1995)' and 'Ley 13/2022 (Comunicación Audiovisual)'). 'corpus_regulations' is the closed set used for the hallucination check: any returned regulation not in this set is a hallucinated citation.",
   "corpus_regulations": [
     "GDPR",
     "EU AI Act",
-    "Codigo Penal",
-    "Ley 13/2022",
+    "Código Penal (LO 10/1995)",
+    "Ley 13/2022 (Comunicación Audiovisual)",
     "LOPDGDD"
   ],
   "queries": [
@@ -31,7 +31,7 @@
     {
       "id": "RAG-05",
       "query": "What does Spanish criminal law say about identity fraud and falsifying documents?",
-      "expected_regulations": ["Codigo Penal"]
+      "expected_regulations": ["Código Penal (LO 10/1995)"]
     },
     {
       "id": "RAG-06",
@@ -41,7 +41,7 @@
     {
       "id": "RAG-07",
       "query": "What audiovisual communication rules govern media service providers in Spain?",
-      "expected_regulations": ["Ley 13/2022"]
+      "expected_regulations": ["Ley 13/2022 (Comunicación Audiovisual)"]
     },
     {
       "id": "RAG-08",

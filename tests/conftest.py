@@ -1,4 +1,5 @@
 import io
+import os
 from unittest.mock import MagicMock
 
 import pytest
@@ -7,9 +8,15 @@ from PIL import Image
 
 @pytest.fixture(autouse=True)
 def env_vars(monkeypatch):
+    # QDRANT_* are fixed test defaults (local Qdrant ignores the API key, so live
+    # integration tests still connect). MISTRAL_API_KEY preserves a real key from
+    # the environment when present so the live RAG metrics test can reach Mistral;
+    # otherwise it falls back to a harmless default for mocked unit tests.
     monkeypatch.setenv("QDRANT_URL", "http://localhost:6333")
     monkeypatch.setenv("QDRANT_API_KEY", "test-key")
-    monkeypatch.setenv("MISTRAL_API_KEY", "test-mistral-key")
+    monkeypatch.setenv(
+        "MISTRAL_API_KEY", os.environ.get("MISTRAL_API_KEY", "test-mistral-key")
+    )
 
 
 @pytest.fixture

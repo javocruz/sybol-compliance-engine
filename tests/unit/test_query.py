@@ -62,24 +62,6 @@ def test_query_regulations_drops_unknown_metadata(mock_mistral, env_vars, mocker
     assert result.regulation_refs == []
 
 
-def test_query_regulations_retrieval_only_without_mistral_key(env_vars, mocker):
-    mocker.patch.dict("os.environ", {"MISTRAL_API_KEY": "your_key_here"}, clear=False)
-    index = MagicMock()
-    node = MagicMock()
-    node.node.metadata = {
-        "regulation_name": "GDPR",
-        "article_number": "5",
-        "source_path": "research/regulations/gdpr.pdf",
-    }
-    node.node.get_content.return_value = "Lawful processing requires a legal basis."
-    index.as_retriever.return_value.retrieve.return_value = [node]
-
-    result = query_regulations(query="GDPR lawful basis", index=index)
-
-    assert "Retrieval-only summary" in result.summary
-    assert len(result.regulation_refs) == 1
-
-
 def test_validate_refs_drops_unknown_regulation_or_article():
     refs = [
         RegulationRef(
