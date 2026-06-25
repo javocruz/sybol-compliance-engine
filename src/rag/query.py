@@ -10,12 +10,16 @@ logger = logging.getLogger(__name__)
 
 
 def _validate_refs(refs: list[RegulationRef]) -> list[RegulationRef]:
-    """Drop citations with missing attribution (Unknown regulation/article)."""
+    """Drop citations with no regulation attribution.
+
+    A known regulation with an unknown article is still a useful citation (the
+    source PDF is linked), so only the regulation name gates inclusion.
+    """
     valid = []
     for ref in refs:
-        if ref.regulation == "Unknown" or ref.article == "Unknown":
+        if not ref.regulation or ref.regulation.strip().lower() == "unknown":
             logger.warning(
-                "Dropping hallucinated/unattributed citation: regulation=%r article=%r",
+                "Dropping unattributed citation: regulation=%r article=%r",
                 ref.regulation,
                 ref.article,
             )

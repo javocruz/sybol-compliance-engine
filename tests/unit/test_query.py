@@ -62,7 +62,9 @@ def test_query_regulations_drops_unknown_metadata(mock_mistral, env_vars, mocker
     assert result.regulation_refs == []
 
 
-def test_validate_refs_drops_unknown_regulation_or_article():
+def test_validate_refs_drops_only_unattributed_regulation():
+    # Only a missing/unknown *regulation* drops a citation; a known regulation
+    # with an unknown article is still useful (the source PDF is linked).
     refs = [
         RegulationRef(
             regulation="Unknown",
@@ -72,7 +74,7 @@ def test_validate_refs_drops_unknown_regulation_or_article():
         ),
         RegulationRef(
             regulation="GDPR",
-            article="Unknown",
+            article="unknown",
             sourceUrl="https://example.com",
             excerpt="y",
         ),
@@ -84,6 +86,5 @@ def test_validate_refs_drops_unknown_regulation_or_article():
         ),
     ]
     valid = _validate_refs(refs)
-    assert len(valid) == 1
-    assert valid[0].regulation == "GDPR"
-    assert valid[0].article == "5"
+    assert len(valid) == 2
+    assert all(ref.regulation == "GDPR" for ref in valid)

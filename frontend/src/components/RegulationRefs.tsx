@@ -19,12 +19,16 @@ export function RegulationRefs({ refs }: RegulationRefsProps) {
     <ul className="regulation-refs">
       {refs.map((ref, index) => {
         const href = ref.url ? resolveRegulationUrl(ref.url) : null;
+        const hasArticle =
+          !!ref.article && ref.article.trim().toLowerCase() !== 'unknown';
 
         return (
         <li key={`${ref.regulation}-${ref.article}-${index}`} className="regulation-ref">
           <div className="regulation-ref-header">
             <span className="regulation-ref-name">{ref.regulation}</span>
-            <span className="regulation-ref-article">Article {ref.article}</span>
+            {hasArticle && (
+              <span className="regulation-ref-article">Article {ref.article}</span>
+            )}
           </div>
           {href ? (
             <a

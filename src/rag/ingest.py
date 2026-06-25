@@ -31,6 +31,14 @@ def load_documents():
     return reader.load_data()
 
 
+# Matches English "Article 50", Spanish "Artículo 50" / "Art. 50".
+ARTICLE_RE = re.compile(r"\b(?:Articul[oa]|Art[íi]culo|Article|Art\.)\s*(\d+)", re.IGNORECASE)
+SECTION_RE = re.compile(
+    r"(?:Section|Chapter|Secci[óo]n|Cap[íi]tulo|T[íi]tulo)\s+(\d+[\w.]*)",
+    re.IGNORECASE,
+)
+
+
 def chunk_documents(documents):
     splitter = SentenceSplitter(
         chunk_size=512,
@@ -39,19 +47,36 @@ def chunk_documents(documents):
 
     nodes = splitter.get_nodes_from_documents(documents)
 
+    # Article/section headers usually appear once and govern the following
+    # chunks, so carry the last-seen value forward (reset per source document)
+    # instead of marking every header-less chunk "unknown".
+    current_article = "unknown"
+    current_section = "unknown"
+    current_source = None
+
     for node in nodes:
+        source = node.metadata.get("source_path") or node.metadata.get(
+            "regulation_type"
+        )
+        if source != current_source:
+            current_source = source
+            current_article = "unknown"
+            current_section = "unknown"
+
         text = node.get_content()
 
-        article_match = re.search(r"Article\s+(\d+)", text, re.IGNORECASE)
-        node.metadata["article_number"] = (
-            article_match.group(1) if article_match else "unknown"
-        )
+        article_matches = ARTICLE_RE.findall(text)
+        if article_matches:
+            node.metadata["article_number"] = article_matches[0]
+            current_article = article_matches[-1]
+        else:
+            node.metadata["article_number"] = current_article
 
-        section_match = re.search(
-            r"(?:Section|Chapter)\s+(\d+[\w.]*)", text, re.IGNORECASE
-        )
-        node.metadata["section"] = (
-            section_match.group(1) if section_match else "unknown"
-        )
+        section_matches = SECTION_RE.findall(text)
+        if section_matches:
+            node.metadata["section"] = section_matches[0]
+            current_section = section_matches[-1]
+        else:
+            node.metadata["section"] = current_section
 
     return nodes
