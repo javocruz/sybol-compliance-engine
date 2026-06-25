@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
-# Idempotent EC2 bootstrap for Sybol Compliance Engine (CPU, no GPU).
+# Idempotent EC2 bootstrap for Sybol Compliance Engine.
+# Ubuntu minimal images lack python3-venv/pip — this script uses uv instead.
 # Run on the server from repo root: bash deploy/ec2-bootstrap.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+
+export PATH="${HOME}/.local/bin:${PATH}"
+
+echo "=== uv (if missing) ==="
+if ! command -v uv >/dev/null; then
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  export PATH="${HOME}/.local/bin:${PATH}"
+fi
 
 echo "=== Qdrant ==="
 if docker ps -a --format '{{.Names}}' | grep -qx sybol-qdrant; then
@@ -18,22 +27,18 @@ fi
 sleep 2
 curl -sf http://127.0.0.1:6333/healthz >/dev/null && echo "Qdrant OK" || { echo "Qdrant failed"; exit 1; }
 
-echo "=== Python venv ==="
-if [[ ! -d .venv ]]; then
-  python3 -m venv .venv
-fi
+echo "=== Python venv (uv) ==="
+rm -rf .venv
+uv venv .venv
 # shellcheck disable=SC1091
 source .venv/bin/activate
-pip install --upgrade pip -q
-if ! python -c "import torch" 2>/dev/null; then
-  pip install torch --index-url https://download.pytorch.org/whl/cpu
-fi
-if ! command -v poetry >/dev/null; then
-  pip install poetry -q
-fi
+echo "Installing CPU torch..."
+uv pip install torch --index-url https://download.pytorch.org/whl/cpu
+uv pip install poetry poetry-plugin-export
 poetry export -f requirements.txt --without-hashes --only main -o /tmp/req.txt
 grep -v '^torch==' /tmp/req.txt > /tmp/req-notorch.txt || true
-pip install -r /tmp/req-notorch.txt -q
+echo "Installing app dependencies..."
+uv pip install -r /tmp/req-notorch.txt
 
 echo "=== Env ==="
 if [[ ! -f src/.env ]]; then
@@ -50,7 +55,7 @@ if curl -sf "http://127.0.0.1:6333/collections/regulations" 2>/dev/null | grep -
   echo "regulations collection exists — skipping ingest"
 fi
 if [[ "$NEED_INGEST" -eq 1 ]]; then
-  python3 -m scripts.ingest
+  python -m scripts.ingest
 fi
 
 echo ""
@@ -59,5 +64,5 @@ echo "Start API in tmux:"
 echo "  tmux new -s sybol-api"
 echo "  cd $ROOT && source .venv/bin/activate"
 echo "  set -a && source src/.env && set +a"
-echo "  export PYTHONPATH=src HF_HOME=\$HOME/.cache/huggingface"
-echo "  python3 -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000"
+echo "  export PYTHONPATH=src HF_HOME=\$HOME/.cache/huggingface PATH=\$HOME/.local/bin:\$PATH"
+echo "  python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000"
