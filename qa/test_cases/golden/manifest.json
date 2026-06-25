@@ -266,5 +266,45 @@
   {
     "file": "ai_generated/womanwalk_sd.png",
     "label": "ai_generated"
+  },
+  {
+    "file": "edited/edit1.jpg",
+    "label": "edited"
+  },
+  {
+    "file": "edited/edit2.jpg",
+    "label": "edited"
+  },
+  {
+    "file": "edited/edit3.jpg",
+    "label": "edited"
+  },
+  {
+    "file": "edited/edit4.jpg",
+    "label": "edited"
+  },
+  {
+    "file": "edited/edit5.jpg",
+    "label": "edited"
+  },
+  {
+    "file": "edited/edit6.jpg",
+    "label": "edited"
+  },
+  {
+    "file": "edited/edit7.jpg",
+    "label": "edited"
+  },
+  {
+    "file": "edited/edit8.jpg",
+    "label": "edited"
+  },
+  {
+    "file": "edited/edit9.jpg",
+    "label": "edited"
+  },
+  {
+    "file": "edited/edit10.jpg",
+    "label": "edited"
   }
 ]

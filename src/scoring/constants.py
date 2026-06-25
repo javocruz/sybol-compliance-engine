@@ -19,6 +19,12 @@ EXIF_RICH_SCORE_FLOOR = 0.80
 SYNTHETIC_PROFILE_PROVENANCE_MAX = 0.28
 SYNTHETIC_PROFILE_METADATA_MAX = 0.45
 SYNTHETIC_PROFILE_SCORE_CAP = 0.26
+# PNG/WebP often ship without EXIF — neutral metadata band, not treated as stripped JPEG.
+PNG_NEUTRAL_METADATA_MIN = 0.44
+PNG_NEUTRAL_METADATA_MAX = 0.52
+# Escape synthetic cap when artifact + visual signals look camera-captured.
+CAMERA_LIKELY_ARTIFACT_MIN = 0.76
+CAMERA_LIKELY_VISUAL_MIN = 0.72
 EDITED_PROFILE_METADATA_MIN = 0.45
 EDITED_PROFILE_METADATA_MAX = 0.72
 EDITED_PROFILE_ARTIFACT_MIN = 0.38
@@ -26,6 +32,18 @@ EDITED_PROFILE_ARTIFACT_MAX = 0.78
 EDITED_PROFILE_PROVENANCE_MAX = 0.55
 EDITED_PROFILE_SCORE_MIN = 0.35
 EDITED_PROFILE_SCORE_MAX = 0.65
+
+# Re-saved edited profile: a camera-format JPEG whose EXIF was stripped by an
+# editor (presence baseline only -> m ~0.39), carrying strong edit/generation
+# artifacts and absent from the provenance set. This sits between an authentic
+# camera JPEG (m >= 0.62) and a synthetic PNG (m ~0.35), so it maps to the
+# review band instead of the synthetic non-compliant cap.
+EDITED_RESAVED_METADATA_MIN = 0.36
+EDITED_RESAVED_METADATA_MAX = 0.42
+EDITED_RESAVED_ARTIFACT_MIN = 0.55
+EDITED_RESAVED_PROVENANCE_MAX = 0.30
+EDITED_RESAVED_SCORE_MIN = 0.35
+EDITED_RESAVED_SCORE_MAX = 0.60
 
 DEEPFAKE_MODEL_ID = "dima806/deepfake_vs_real_image_detection"
 MODEL_INPUT_SIZE = 224
@@ -59,7 +77,8 @@ METADATA_SOFTWARE_WEIGHT = 0.20
 METADATA_TIMESTAMP_WEIGHT = 0.10
 
 NO_EXIF_CAP = 0.35
-PNG_WEBP_NO_EXIF_SCORE = 0.22
+# Missing EXIF on PNG/WebP is normal — not evidence of synthesis (unlike stripped JPEG).
+PNG_WEBP_NO_EXIF_SCORE = 0.55
 
 PHASH_MATCH_THRESHOLD = 10
 AUTHENTIC_REFERENCE_DIR = PROJECT_ROOT / "qa" / "test_cases" / "authentic"

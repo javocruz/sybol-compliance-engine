@@ -1,0 +1,10 @@
+.results-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.results-panel-header {
+  display: flex;
+  justify-content: center;
+}

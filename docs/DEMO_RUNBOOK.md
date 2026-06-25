@@ -1,37 +1,48 @@
 # Demo Runbook — Recommended Path (June 25)
 
-Guaranteed demo: **`POST /api/analyze`** (scoring only).  
-Stretch goal: **`POST /api/issue`** (signed VC via Sybol).
+Full pipeline is **live on develop**: **`POST /api/issue`** scores an image, grounds
+it in EU/Spanish regulation via RAG, writes an audit trail, and returns a
+Sybol-signed W3C Verifiable Credential.
+
+Guaranteed demo: **`POST /api/analyze`** (scoring only, no external services).  
+Recommended demo: **`POST /api/issue`** (full signed-VC pipeline).
 
 ---
 
-## Step 1 — Option A: Get Sybol tokens (try first)
+## Step 1 — Sybol auth (automatic, no token copying)
 
-OpenAPI `/auth/login` is **404** on develop. Use the **wallet web UI** instead.
+The engine logs in to Sybol develop directly via AWS Cognito
+(`USER_PASSWORD_AUTH`), so you do **not** need to copy tokens from the browser.
 
-1. Open the BusinessWallet develop app (try in order):
-   - `https://app.develop.wallet.sybol.id`
-   - Or the URL Iñigo / Sybol gave you for IE login
-2. Log in with `info@ie.id` and your password.
-3. Open **DevTools → Network**, filter by `api` or `credentials`.
-4. Click any authenticated request and copy headers:
-   - `Authorization: Bearer eyJ...` → paste token only into `SYBOL_ACCESS_TOKEN`
-   - `X-Id-Token: eyJ...` → paste into `SYBOL_ID_TOKEN`
-5. Save to `src/.env` (never commit):
+1. Put the IE service account in `src/.env` (never commit):
 
 ```bash
-cp src/.env.example src/.env
-# edit src/.env
+SYBOL_EMAIL=info@ie.id
+SYBOL_PASSWORD=<password from Pelayo's access email>
+SYBOL_API_BASE_URL=https://api.develop.wallet.sybol.id
+SYBOL_DOCUMENT_ID=0acdb1ed-4cd2-41a4-917a-b7270d6166b9
 ```
 
-6. Verify tokens:
+The Cognito client id and issuer DID already have working develop defaults in
+`src/.env.example`.
+
+2. Verify login and catalog access:
 
 ```bash
+PYTHONPATH=src python3 -m scripts.sybol_login          # prints "Login OK"
 PYTHONPATH=src python3 -m scripts.sybol_discover_catalog
-PYTHONPATH=src python3 -m scripts.sybol_probe_issue
 ```
 
-Tokens expire in ~1 hour. Re-copy from browser or use refresh flow when Sybol documents it.
+Tokens are minted per request, so there is nothing to refresh during the demo.
+
+3. Inspect issued credentials in the wallet UI at
+   [https://sybol.develop.wallet.sybol.id/](https://sybol.develop.wallet.sybol.id/)
+   (log in with `info@ie.id`). Use this to confirm a VC issued from `/api/issue`
+   appears in the wallet.
+
+> Manual token override (only if Cognito login ever fails): log into the wallet
+> UI, open DevTools - Network, and copy the `Authorization` bearer into
+> `SYBOL_ACCESS_TOKEN` and `X-Id-Token` into `SYBOL_ID_TOKEN`.
 
 ---
 
@@ -77,17 +88,12 @@ Check readiness anytime:
 
 ---
 
-## Step 3 — Option B: Message to Iñigo (if Step 1 fails)
+## Step 3 — Fallback contact for Iñigo (only if develop breaks)
 
-Send this (Spanish or English):
-
-> Hola Iñigo — estamos integrando el Compliance Engine con BusinessWallet develop (`api.develop.wallet.sybol.id`).
->
-> 1. Las credenciales `info@ie.id` devuelven **401** en `/api/bl/auth/login` y **NotAuthorized** en Cognito pool `eu-west-1_Lpg65AWPJ`. ¿Está el usuario provisionado en develop?
-> 2. ¿Cuál es la URL correcta del wallet UI para login?
-> 3. ¿Podéis crear un documento de catálogo **MediaCompliance** (claims: mediaHash, authenticityScore, scoreBreakdown, complianceStatus, regulationRefs, evidenceUrl) y enviarnos **documentId** e **issuerKey**?
->
-> Gracias, Javier
+Auth, the `MEDIA_COMPLIANCE_IE` catalog, and signing are all working on develop,
+so this is only a fallback if the develop environment changes under us. Contact
+Iñigo if Cognito login starts returning `NotAuthorized` for `info@ie.id`, or if
+the catalog document `0acdb1ed-4cd2-41a4-917a-b7270d6166b9` disappears.
 
 ---
 
@@ -120,8 +126,9 @@ Interactive docs: http://localhost:8000/docs
 
 1. Show problem: no machine-readable proof of media authenticity.
 2. Upload authentic photo → score + breakdown `m,a,v,p` → `compliant`.
-3. Upload AI image → lower score → `non-compliant` or `review`.
-4. Explain: RAG + signed VC wired in `/api/issue`, blocked on Sybol catalog + tokens (show Architecture.md diagram).
+3. Upload AI image → lower score → `non-compliant`.
+4. Upload edited photo → mid score → `review`.
+5. Run `/api/issue` to ground the score in regulation and return the Sybol-signed VC (show Architecture.md diagram).
 
 Run golden regression (optional QA slide):
 
@@ -131,31 +138,36 @@ PYTHONPATH=src python3 -m pytest tests/integration/test_scoring_regression.py -v
 
 ---
 
-## Step 5 — Stretch: Full `/api/issue` (Option C)
+## Step 5 — Recommended demo: Full `/api/issue` (signed VC)
 
-Requires **all** of:
+Requires:
 
 | Requirement | Env var / action |
 |-------------|------------------|
-| Sybol tokens | `SYBOL_ACCESS_TOKEN`, `SYBOL_ID_TOKEN` |
-| Catalog doc | `SYBOL_DOCUMENT_ID` (from discover script or Iñigo) |
-| Signing key | `SYBOL_ISSUER_KEY` (from Iñigo / settings after login) |
-| Qdrant + ingest | `QDRANT_URL` + PDFs ingested |
+| Sybol auth | `SYBOL_EMAIL` + `SYBOL_PASSWORD` (Cognito login, automatic) |
+| Catalog doc | `SYBOL_DOCUMENT_ID` (develop default already set) |
+| Signing key | `SYBOL_ISSUER_KEY` (develop default already set) |
+| Qdrant + ingest | `QDRANT_URL` + PDFs ingested (`scripts.ingest`) |
 | Mistral | `MISTRAL_API_KEY` |
 
 ```bash
 curl -s -X POST http://localhost:8000/api/issue \
-  -F "file=@qa/test_cases/golden/authentic/ar_1.JPG" | python3 -m json.tool
+  -F "file=@qa/test_cases/golden/authentic/ar20.jpg" | python3 -m json.tool
 ```
 
-Success: `"status": "signed_vc_issued"` with `signed_vc.signed_token` or `proof`.
+Success: `"status": "signed_vc_issued"` with a signed token in `signed_vc`.
+A scripted end-to-end run (score → RAG → audit → signed VC) is also available:
+
+```bash
+PYTHONPATH=src python3 -m scripts.sybol_e2e_full_issue qa/test_cases/golden/authentic/ar20.jpg
+```
 
 ---
 
-## Quick reference — what blocks what
+## Quick reference — what each endpoint needs
 
-| Feature | Blocked by |
+| Feature | Needs |
 |---------|------------|
 | `/api/analyze` | Nothing — ready |
-| `/api/query` | PDFs + Qdrant ingest + Mistral |
-| `/api/issue` | Above + Sybol tokens + documentId + issuerKey |
+| `/api/query` | Qdrant ingested + Mistral key |
+| `/api/issue` | Above + Sybol `SYBOL_EMAIL`/`SYBOL_PASSWORD` (catalog + issuer have develop defaults) |

@@ -1,0 +1,52 @@
+{
+  "description": "Labelled RAG evaluation set for TC-005 (Saba). Each query has the set of regulation_name values that a correct retrieval should surface, drawn from the 5-PDF corpus in research/regulations/. 'expected_regulations' and 'corpus_regulations' must match the regulation_name metadata produced by ingestion exactly (case-insensitive); the values below mirror the ingested index (e.g. 'Código Penal (LO 10/1995)' and 'Ley 13/2022 (Comunicación Audiovisual)'). 'corpus_regulations' is the closed set used for the hallucination check: any returned regulation not in this set is a hallucinated citation.",
+  "corpus_regulations": [
+    "GDPR",
+    "EU AI Act",
+    "Código Penal (LO 10/1995)",
+    "Ley 13/2022 (Comunicación Audiovisual)",
+    "LOPDGDD"
+  ],
+  "queries": [
+    {
+      "id": "RAG-01",
+      "query": "What obligations apply to AI-generated or manipulated media that could deceive viewers?",
+      "expected_regulations": ["EU AI Act"]
+    },
+    {
+      "id": "RAG-02",
+      "query": "What are the requirements for lawful processing of personal data and consent?",
+      "expected_regulations": ["GDPR"]
+    },
+    {
+      "id": "RAG-03",
+      "query": "What rights does a data subject have to access or erase their personal data?",
+      "expected_regulations": ["GDPR"]
+    },
+    {
+      "id": "RAG-04",
+      "query": "Which transparency duties apply to providers of deepfake or synthetic content systems?",
+      "expected_regulations": ["EU AI Act"]
+    },
+    {
+      "id": "RAG-05",
+      "query": "What does Spanish criminal law say about identity fraud and falsifying documents?",
+      "expected_regulations": ["Código Penal (LO 10/1995)"]
+    },
+    {
+      "id": "RAG-06",
+      "query": "How does Spanish national law adapt the EU data protection regime?",
+      "expected_regulations": ["LOPDGDD"]
+    },
+    {
+      "id": "RAG-07",
+      "query": "What audiovisual communication rules govern media service providers in Spain?",
+      "expected_regulations": ["Ley 13/2022 (Comunicación Audiovisual)"]
+    },
+    {
+      "id": "RAG-08",
+      "query": "What penalties or sanctions exist for processing personal data unlawfully?",
+      "expected_regulations": ["GDPR", "LOPDGDD"]
+    }
+  ]
+}

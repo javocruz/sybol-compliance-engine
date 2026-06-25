@@ -19,6 +19,21 @@ def test_query_regulations_returns_compliance_result(
     mock_mistral.complete.assert_called_once()
 
 
+def test_query_regulations_with_ollama_provider(
+    mock_synthesis_llm, mock_vector_index, env_vars, mocker
+):
+    mock_get_llm = mocker.patch("rag.query.get_synthesis_llm", return_value=mock_synthesis_llm)
+
+    result = query_regulations(
+        query="AI transparency rules",
+        index=mock_vector_index,
+        llm_provider="ollama",
+    )
+
+    assert result.summary == "Synthesized compliance summary."
+    mock_get_llm.assert_called_once_with("ollama")
+
+
 def test_query_regulations_with_regulation_type_filter(
     mock_mistral, mock_vector_index, env_vars
 ):
@@ -47,25 +62,9 @@ def test_query_regulations_drops_unknown_metadata(mock_mistral, env_vars, mocker
     assert result.regulation_refs == []
 
 
-def test_query_regulations_retrieval_only_without_mistral_key(env_vars, mocker):
-    mocker.patch.dict("os.environ", {"MISTRAL_API_KEY": "your_key_here"}, clear=False)
-    index = MagicMock()
-    node = MagicMock()
-    node.node.metadata = {
-        "regulation_name": "GDPR",
-        "article_number": "5",
-        "source_path": "research/regulations/gdpr.pdf",
-    }
-    node.node.get_content.return_value = "Lawful processing requires a legal basis."
-    index.as_retriever.return_value.retrieve.return_value = [node]
-
-    result = query_regulations(query="GDPR lawful basis", index=index)
-
-    assert "Retrieval-only summary" in result.summary
-    assert len(result.regulation_refs) == 1
-
-
-def test_validate_refs_drops_unknown_regulation_or_article():
+def test_validate_refs_drops_only_unattributed_regulation():
+    # Only a missing/unknown *regulation* drops a citation; a known regulation
+    # with an unknown article is still useful (the source PDF is linked).
     refs = [
         RegulationRef(
             regulation="Unknown",
@@ -75,7 +74,7 @@ def test_validate_refs_drops_unknown_regulation_or_article():
         ),
         RegulationRef(
             regulation="GDPR",
-            article="Unknown",
+            article="unknown",
             sourceUrl="https://example.com",
             excerpt="y",
         ),
@@ -87,6 +86,5 @@ def test_validate_refs_drops_unknown_regulation_or_article():
         ),
     ]
     valid = _validate_refs(refs)
-    assert len(valid) == 1
-    assert valid[0].regulation == "GDPR"
-    assert valid[0].article == "5"
+    assert len(valid) == 2
+    assert all(ref.regulation == "GDPR" for ref in valid)

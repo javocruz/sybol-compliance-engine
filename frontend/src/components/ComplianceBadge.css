@@ -1,0 +1,24 @@
+.compliance-badge {
+  display: inline-block;
+  padding: 0.375rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.compliance-badge--compliant {
+  background: #dcfce7;
+  color: var(--color-compliant);
+}
+
+.compliance-badge--review {
+  background: #fef3c7;
+  color: var(--color-review);
+}
+
+.compliance-badge--non_compliant {
+  background: #fee2e2;
+  color: var(--color-non-compliant);
+}

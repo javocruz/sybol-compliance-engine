@@ -22,9 +22,16 @@ class AnalyzeResponse(BaseModel):
     evidence_url: str | None = None
 
 
+class QueryRequest(BaseModel):
+    question: str = Field(..., min_length=1)
+    llm_provider: Literal["mistral", "ollama"] = "mistral"
+
+
 class QueryResponse(BaseModel):
     answer: str
     regulation_refs: list[dict] = Field(default_factory=list)
+    llm_provider: str
+    llm_model: str
 
 
 class IssueResponse(BaseModel):

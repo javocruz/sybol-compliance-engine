@@ -57,12 +57,15 @@ cp src/.env.example src/.env
 
 | Variable | Required for | Description |
 |---|---|---|
-| `MISTRAL_API_KEY` | `/query` | Mistral Large API key for RAG synthesis |
+| `MISTRAL_API_KEY` | `/query` (Mistral provider) | Mistral Large API key for RAG synthesis |
+| `DEFAULT_LLM_PROVIDER` | `/issue` | `mistral` or `ollama` — synthesis backend for issue RAG step |
+| `OLLAMA_BASE_URL` | `/query`, `/issue` (Ollama provider) | Ollama API URL (default `http://localhost:11434`) |
+| `OLLAMA_MODEL` | `/query`, `/issue` (Ollama provider) | Model tag (default `qwen2.5:7b-instruct`) |
 | `QDRANT_URL` | `/query`, app startup | Qdrant instance URL (e.g. `http://localhost:6333`) |
 | `QDRANT_API_KEY` | `/query` | Qdrant API key (optional for local Qdrant) |
 | `SYBOL_*` | `/issue` | Sybol VC signing — pending Darius/Iñigo confirmation |
 
-Scoring via `/analyze` does not require Qdrant or Mistral. If Qdrant is unavailable at startup, `/analyze` still works but `/query` returns 503 until Qdrant is running and the regulations index has been ingested.
+Scoring via `/api/analyze` does not require Qdrant or Mistral. If Qdrant is unavailable at startup, `/api/analyze` still works but `/api/query` returns 503 until Qdrant is running and the regulations index has been ingested.
 
 ### Ingest regulation PDFs (one-time, before `/query` works)
 
@@ -110,14 +113,26 @@ Health check:
 curl http://localhost:8000/health
 ```
 
+## Web UI
+
+A React SPA in [`frontend/`](frontend/) provides an **Analyze** tab for uploading images and viewing authenticity scores, and a **Query** tab for regulation Q&A via RAG. The Issue tab is a placeholder until Sybol VC signing is wired up.
+
+**Query tab** requires Qdrant with an ingested regulations index. Choose **Mistral (cloud)** (`MISTRAL_API_KEY`) or **Qwen local (Ollama)** via the UI toggle. `/api/issue` uses `DEFAULT_LLM_PROVIDER` from `src/.env` (not the UI toggle).
+
+**Local dev:** run the API (above) and, in a second terminal, `cd frontend && npm ci && npm run dev` — open [http://localhost:5173](http://localhost:5173). Vite proxies `/api` and `/health` to the backend.
+
+**Production:** build with `cd frontend && npm ci && npm run build`, then start uvicorn from the repo root; the API serves `frontend/dist` on the same port.
+
+Full setup (EC2 remote API, env vars, test images): see [`frontend/README.md`](frontend/README.md).
+
 ## API Endpoints
 
 | Endpoint | Method | Status | Description |
 |---|---|---|---|
 | `/health` | GET | Live | Service health check |
-| `/analyze` | POST | Live | Score media authenticity (four signals → compliance status) |
-| `/query` | POST | Live | Query RAG pipeline for regulation citations |
-| `/issue` | POST | Live (503 until Sybol configured) | Score media → RAG citations → audit trail → submit to Sybol `businessLogic` API → return signed W3C VC 1.1. Returns 503 until `SYBOL_API_URL`, `SYBOL_ACCESS_TOKEN`, and `SYBOL_ID_TOKEN` are set. |
+| `/api/analyze` | POST | Live | Score media authenticity (four signals → compliance status) |
+| `/api/query` | POST | Live | Query RAG pipeline for regulation citations |
+| `/api/issue` | POST | Live (503 until Sybol configured) | Score media → RAG citations → audit trail → submit to Sybol `businessLogic` API → return signed W3C VC 1.1. Returns 503 until `SYBOL_API_URL`, `SYBOL_ACCESS_TOKEN`, and `SYBOL_ID_TOKEN` are set. |
 
 Interactive docs: `http://localhost:8000/docs`
 
@@ -128,7 +143,7 @@ Interactive docs: `http://localhost:8000/docs`
 With the server running, upload any JPEG, PNG, or WebP file:
 
 ```bash
-curl -X POST http://localhost:8000/analyze \
+curl -X POST http://localhost:8000/api/analyze \
   -F "file=@/path/to/your/image.png"
 ```
 
@@ -137,7 +152,7 @@ Example response:
 ```json
 {
   "authenticity_score": 0.64,
-  "score_breakdown": [0.46, 0.88, 0.70, 0.50],
+  "score_breakdown": { "m": 0.46, "a": 0.88, "v": 0.70, "p": 0.50 },
   "compliance_status": "review",
   "media_hash": "b26da027829d45fb153c23cc0cfe0a3300e077c98d53f534f6e9ec51f33beffb"
 }
@@ -146,7 +161,7 @@ Example response:
 | Field | Meaning |
 |---|---|
 | `authenticity_score` | Overall score in `[0.0, 1.0]` |
-| `score_breakdown` | `[m, a, v, p]` — metadata, artifacts, visual, provenance |
+| `score_breakdown` | `{ m, a, v, p }` — metadata, artifacts, visual, provenance |
 | `compliance_status` | `compliant` (≥ 0.7), `review` (0.3–0.7), `non-compliant` (< 0.3) |
 | `media_hash` | SHA-256 of the raw file before any processing |
 

@@ -39,3 +39,28 @@ def test_app_registers_expected_routes():
     assert "/api/query" in paths
     assert "/api/analyze" in paths
     assert "/api/issue" in paths
+
+
+def test_cors_middleware_registered():
+    middleware_classes = [mw.cls for mw in app.user_middleware]
+    from fastapi.middleware.cors import CORSMiddleware
+
+    assert CORSMiddleware in middleware_classes
+
+
+@pytest.mark.skipif(
+    not (
+        __import__("pathlib").Path(__file__).resolve().parents[2]
+        / "frontend"
+        / "dist"
+        / "index.html"
+    ).is_file(),
+    reason="frontend/dist not built",
+)
+def test_spa_fallback_serves_index_when_dist_exists():
+    from fastapi.testclient import TestClient
+
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "text/html" in response.headers.get("content-type", "")
