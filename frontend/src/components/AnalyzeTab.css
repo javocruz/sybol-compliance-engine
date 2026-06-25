@@ -1,29 +1,26 @@
-.analyze-tab-grid {
+.analyze-tab-grid,
+.issue-tab-grid {
   display: grid;
-  gap: 1.5rem;
+  gap: 1.75rem;
 }
 
-.analyze-tab-heading {
-  margin: 0 0 1rem;
-  font-size: 1rem;
-  font-weight: 600;
+.analyze-tab-submit,
+.issue-tab-submit {
+  margin-top: 1.25rem;
 }
 
-.analyze-tab-submit {
-  margin-top: 1rem;
-  width: 100%;
-}
-
-.analyze-tab-placeholder {
+.analyze-tab-placeholder,
+.issue-tab-placeholder {
   margin: 0;
-  font-size: 0.9375rem;
-  color: var(--color-text-muted);
+  font-size: var(--text-body-md);
+  color: var(--sybol-neutral-500);
   text-align: center;
-  padding: 2rem 1rem;
+  padding: 2.5rem 1rem;
 }
 
 @media (min-width: 768px) {
-  .analyze-tab-grid {
+  .analyze-tab-grid,
+  .issue-tab-grid {
     grid-template-columns: 1fr 1fr;
     align-items: start;
   }

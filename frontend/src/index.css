@@ -1,4 +1,5 @@
 @import './styles/sybol-tokens.css';
+@import './styles/sybol-components.css';
 
 *,
 *::before,
@@ -27,6 +28,7 @@ button {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .app-main {
@@ -34,61 +36,11 @@ button {
   width: 100%;
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: 1.5rem 1rem 2rem;
+  padding: 6rem 1.25rem 2rem;
 }
 
-.card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  padding: 1.25rem;
-}
-
-.card--accent {
-  background: var(--color-surface-accent);
-  border-color: var(--sybol-yellow-200);
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  border: none;
-  border-radius: var(--radius);
-  font-size: 0.9375rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.btn-primary {
-  background: var(--sybol-900);
-  color: var(--sybol-200);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--sybol-800);
-}
-
-.btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-primary:focus-visible {
-  outline: 2px solid var(--sybol-200);
-  outline-offset: 2px;
-}
-
-.btn-secondary {
-  background: var(--color-surface);
-  color: var(--sybol-900);
-  border: 1px solid var(--color-border);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: var(--sybol-neutral-100);
+@media (min-width: 768px) {
+  .app-main {
+    padding: 7rem 2rem 3rem;
+  }
 }

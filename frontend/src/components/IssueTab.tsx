@@ -69,11 +69,10 @@ export function IssueTab() {
   return (
     <div className="issue-tab">
       <div className="issue-tab-grid">
-        <section className="issue-tab-upload card card--accent">
-          <h2 className="issue-tab-heading">Issue credential</h2>
-          <p className="issue-tab-intro">
-            Upload media to score authenticity, query applicable regulations, write an
-            audit record, and issue a signed W3C Verifiable Credential via Sybol.
+        <section className="sybol-card-service">
+          <h3 className="sybol-card-heading">Issue credential</h3>
+          <p className="sybol-card-intro">
+            Score media, query regulations, write an audit record, and sign via Sybol wallet.
           </p>
           <ImageUploader onFileSelect={handleFileSelect} disabled={loading} />
           {previewUrl && file && (
@@ -81,11 +80,11 @@ export function IssueTab() {
           )}
           <button
             type="button"
-            className="btn btn-primary issue-tab-submit"
+            className="btn-solid issue-tab-submit"
             onClick={() => void handleIssue()}
             disabled={!file || loading}
           >
-            {loading ? 'Issuing…' : 'Issue credential'}
+            {loading ? 'Issuing…' : 'Issue signed credential'}
           </button>
           {loading && (
             <LoadingPanel
@@ -96,8 +95,8 @@ export function IssueTab() {
           {error && <ErrorAlert title="Issuance failed" message={error} />}
         </section>
 
-        <section className="issue-tab-results card">
-          <h2 className="issue-tab-heading">Credential</h2>
+        <section className="sybol-card-white">
+          <h3 className="sybol-card-heading">Credential</h3>
           {results ? (
             <CredentialResultsPanel results={results} />
           ) : (

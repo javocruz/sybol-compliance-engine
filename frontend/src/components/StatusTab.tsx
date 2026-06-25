@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchSystemStatus, ApiError } from '../api/client';
 import type { SystemStatusResponse } from '../types/api';
-import { Button } from './ui/Button';
-import { Card } from './ui/Card';
-import { Banner } from './ui/Banner';
 import { ErrorAlert } from './ErrorAlert';
+import { Banner } from './ui/Banner';
 import './StatusTab.css';
 
 function StatusCard({
@@ -17,14 +15,14 @@ function StatusCard({
   ok?: boolean;
 }) {
   return (
-    <Card className="status-card">
+    <div className="status-card">
       <span className="status-card__label">{label}</span>
       <span
         className={`status-card__value${ok === true ? ' status-card__value--ok' : ''}${ok === false ? ' status-card__value--bad' : ''}`}
       >
         {value}
       </span>
-    </Card>
+    </div>
   );
 }
 
@@ -65,10 +63,14 @@ export function StatusTab() {
   return (
     <div className="status-tab">
       <div className="status-tab__header">
-        <h2 className="status-tab__title">System status</h2>
-        <Button variant="secondary" onClick={() => void load()} disabled={loading}>
-          {loading ? 'Refreshing…' : 'Refresh'}
-        </Button>
+        <button
+          type="button"
+          className="btn-outline"
+          onClick={() => void load()}
+          disabled={loading}
+        >
+          {loading ? 'Refreshing…' : 'Refresh status'}
+        </button>
       </div>
 
       {error && <ErrorAlert message={error} />}

@@ -97,11 +97,10 @@ export function QueryTab() {
   return (
     <div className="query-tab">
       <div className="query-tab-grid">
-        <section className="query-tab-input card card--accent">
-          <h2 className="query-tab-heading">Ask a regulation question</h2>
-          <p className="query-tab-intro">
-            Query EU and Spanish regulations via RAG. Answers are synthesized from
-            ingested legal texts with cited articles.
+        <section className="sybol-card-service query-tab-input">
+          <h3 className="sybol-card-heading">Ask a regulation question</h3>
+          <p className="sybol-card-intro">
+            Query EU and Spanish regulations via RAG with cited articles from ingested legal texts.
           </p>
 
           <fieldset className="query-tab-llm-toggle">
@@ -168,7 +167,7 @@ export function QueryTab() {
 
           <button
             type="button"
-            className="btn btn-primary query-tab-submit"
+            className="btn-solid query-tab-submit"
             onClick={() => void handleSubmit()}
             disabled={!canSubmit}
           >
@@ -188,9 +187,9 @@ export function QueryTab() {
           {error && <ErrorAlert title="Query failed" message={error} />}
         </section>
 
-        <section className="query-tab-results card">
+        <section className="sybol-card-white query-tab-results">
           <div className="query-tab-results-header">
-            <h2 className="query-tab-heading">Answer</h2>
+            <h3 className="sybol-card-heading">Answer</h3>
             {results && (
               <span className="query-tab-model-badge" title={results.llm_provider}>
                 Powered by {results.llm_model}

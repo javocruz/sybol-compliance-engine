@@ -1,32 +1,18 @@
 .issue-tab-grid {
   display: grid;
-  gap: 1.5rem;
-}
-
-.issue-tab-heading {
-  margin: 0 0 1rem;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.issue-tab-intro {
-  margin: -0.5rem 0 1rem;
-  font-size: 0.9375rem;
-  color: var(--color-text-muted);
-  line-height: 1.5;
+  gap: 1.75rem;
 }
 
 .issue-tab-submit {
-  margin-top: 1rem;
-  width: 100%;
+  margin-top: 1.25rem;
 }
 
 .issue-tab-placeholder {
   margin: 0;
-  font-size: 0.9375rem;
-  color: var(--color-text-muted);
+  font-size: var(--text-body-md);
+  color: var(--sybol-neutral-500);
   text-align: center;
-  padding: 2rem 1rem;
+  padding: 2.5rem 1rem;
 }
 
 @media (min-width: 768px) {

@@ -1,15 +1,15 @@
 .drop-zone {
-  border: 2px dashed var(--color-border);
-  border-radius: var(--radius);
+  border: 2px dashed rgb(0 71 81 / 0.2);
+  border-radius: var(--radius-lg);
   padding: 2rem 1.5rem;
   text-align: center;
-  background: var(--color-surface);
+  background: rgb(255 255 255 / 0.6);
   transition: border-color 0.15s, background 0.15s;
 }
 
 .drop-zone--over {
-  border-color: var(--color-accent);
-  background: var(--color-accent-light);
+  border-color: var(--sybol-800);
+  background: var(--sybol-50);
 }
 
 .drop-zone--disabled {
@@ -19,31 +19,32 @@
 
 .drop-zone-text {
   margin: 0 0 0.25rem;
-  font-size: 0.9375rem;
-  color: var(--color-text);
+  font-size: var(--text-body-md);
+  font-weight: 600;
+  color: var(--sybol-900);
 }
 
 .drop-zone-hint {
   margin: 0 0 1rem;
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
+  font-size: var(--text-body-xs);
+  color: var(--sybol-neutral-500);
 }
 
 .drop-zone-button {
   display: inline-block;
-  padding: 0.5rem 1.25rem;
-  font-size: 0.875rem;
+  padding: 13px 23px;
+  font-size: var(--text-body-sm);
   font-weight: 600;
-  color: #fff;
-  background: var(--color-accent);
+  color: var(--sybol-200);
+  background: var(--sybol-900);
   border: none;
-  border-radius: var(--radius);
+  border-radius: var(--sybol-radius-btn);
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .drop-zone-button:hover:not(:disabled) {
-  background: var(--color-accent-hover);
+  background: var(--sybol-800);
 }
 
 .drop-zone-button:disabled {
@@ -53,12 +54,12 @@
 
 .image-uploader-selected {
   margin: 0.75rem 0 0;
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
+  font-size: var(--text-body-xs);
+  color: var(--sybol-neutral-500);
 }
 
 .image-uploader-error {
   margin: 0.5rem 0 0;
-  font-size: 0.8125rem;
+  font-size: var(--text-body-xs);
   color: var(--color-non-compliant);
 }

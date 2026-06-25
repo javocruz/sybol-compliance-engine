@@ -59,26 +59,29 @@ export function AnalyzeTab() {
   return (
     <div className="analyze-tab">
       <div className="analyze-tab-grid">
-        <section className="analyze-tab-upload card card--accent">
-          <h2 className="analyze-tab-heading">Upload Image</h2>
+        <section className="sybol-card-service">
+          <h3 className="sybol-card-heading">Upload image</h3>
+          <p className="sybol-card-intro">
+            JPEG, PNG, or WebP — scored against metadata, artifacts, visual CNN, and provenance.
+          </p>
           <ImageUploader onFileSelect={handleFileSelect} disabled={loading} />
           {previewUrl && file && (
             <ImagePreview file={file} previewUrl={previewUrl} />
           )}
           <button
             type="button"
-            className="btn btn-primary analyze-tab-submit"
+            className="btn-solid analyze-tab-submit"
             onClick={handleAnalyze}
             disabled={!file || loading}
           >
-            {loading ? 'Analyzing…' : 'Analyze'}
+            {loading ? 'Analyzing…' : 'Analyze authenticity'}
           </button>
           {loading && <LoadingPanel />}
           {error && <ErrorAlert message={error} />}
         </section>
 
-        <section className="analyze-tab-results card">
-          <h2 className="analyze-tab-heading">Results</h2>
+        <section className="sybol-card-white">
+          <h3 className="sybol-card-heading">Results</h3>
           {results ? (
             <ResultsPanel results={results} />
           ) : (

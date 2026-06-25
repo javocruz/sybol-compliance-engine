@@ -7,14 +7,22 @@ export function Footer() {
   return (
     <footer className="footer">
       <div className="footer-inner">
-        <img src={SYBOL_LOGO} alt="Sybol" className="footer-logo" width={40} height={40} />
-        <p className="footer-text">
-          Powered by{' '}
+        <div className="footer-brand">
+          <img src={SYBOL_LOGO} alt="Sybol" className="footer-logo" width={48} height={48} />
+          <div>
+            <p className="footer-title">Sybol</p>
+            <p className="footer-tagline">Compliance Engine · IEU Labs</p>
+          </div>
+        </div>
+        <nav className="footer-links" aria-label="Footer">
           <a href="https://sybol.id" target="_blank" rel="noopener noreferrer">
-            Sybol
+            sybol.id
           </a>
-          {' · '}IEU Labs Compliance Engine
-        </p>
+          <a href="https://sybol.develop.wallet.sybol.id/" target="_blank" rel="noopener noreferrer">
+            Wallet
+          </a>
+        </nav>
+        <p className="footer-copy">© Sybol · Media authenticity & verifiable compliance</p>
       </div>
     </footer>
   );

@@ -53,7 +53,7 @@ export function Header() {
     <header className="header">
       <div className="header-inner">
         <div className="header-brand">
-          <img src={SYBOL_LOGO} alt="" className="header-logo" width={36} height={36} />
+          <img src={SYBOL_LOGO} alt="" className="header-logo" width={44} height={44} />
           <div>
             <h1 className="header-title">Sybol</h1>
             <p className="header-sublabel">Compliance Engine</p>

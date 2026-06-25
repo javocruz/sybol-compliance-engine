@@ -9,7 +9,8 @@
 
 .status-tab__title {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: var(--text-body-md);
+  font-weight: 700;
   color: var(--sybol-900);
 }
 
@@ -24,19 +25,23 @@
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  background: #fff;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--sybol-shadow-card);
+  padding: 1.125rem 1.25rem;
 }
 
 .status-card__label {
-  font-size: 0.75rem;
+  font-size: var(--text-body-xs);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted);
+  letter-spacing: 0.06em;
+  color: var(--sybol-neutral-500);
   font-weight: 600;
 }
 
 .status-card__value {
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: var(--text-body-md);
+  font-weight: 700;
   color: var(--sybol-900);
   word-break: break-all;
 }

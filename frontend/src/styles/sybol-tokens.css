@@ -2,9 +2,11 @@
   --sybol-900: #004751;
   --sybol-800: #007d72;
   --sybol-700: #009e8e;
+  --sybol-500: #48e296;
+  --sybol-400: #6be9a1;
   --sybol-200: #aff8b9;
   --sybol-100: #48e296;
-  --sybol-50: #e8fff0;
+  --sybol-50: #effef1;
   --sybol-yellow-100: #fef9c3;
   --sybol-yellow-200: #fef08a;
   --sybol-neutral-50: #f8fafc;
@@ -12,15 +14,24 @@
   --sybol-neutral-500: #64748b;
   --sybol-neutral-800: #1e293b;
   --sybol-radius: 1rem;
+  --sybol-radius-btn: 11px;
   --sybol-radius-sm: 0.5rem;
-  --sybol-shadow: 0 25px 50px -12px rgb(0 71 81 / 0.12);
+  --sybol-shadow-card: 0 20px 25px -5px rgb(43 60 92 / 0.05), 0 8px 10px -6px rgb(43 60 92 / 0.05);
   --sybol-shadow-sm: 0 4px 12px rgb(0 71 81 / 0.08);
   --font-primary: 'Satoshi', system-ui, -apple-system, sans-serif;
 
+  /* Display typography (from Sybol.css) */
+  --text-display-sm: clamp(1.875rem, 0.304rem + 2.455vw, 3.25rem);
+  --text-display-md: clamp(2.375rem, 0.392rem + 3.421vw, 5.625rem);
+  --text-body-lg: clamp(1.125rem, 0.395vw + 1.026rem, 1.5rem);
+  --text-body-md: clamp(0.875rem, 0.392vw + 0.779rem, 1.25rem);
+  --text-body-sm: clamp(0.75rem, 0.261vw + 0.686rem, 1rem);
+  --text-body-xs: clamp(0.688rem, 0.196vw + 0.64rem, 0.875rem);
+
   /* App semantic tokens */
-  --color-header-bg: var(--sybol-900);
-  --color-header-text: #ffffff;
-  --color-body-bg: var(--sybol-neutral-50);
+  --color-header-bg: rgba(255, 255, 255, 0.85);
+  --color-header-text: var(--sybol-900);
+  --color-body-bg: #ffffff;
   --color-surface: #ffffff;
   --color-surface-accent: var(--sybol-yellow-100);
   --color-border: #e2e8f0;
@@ -40,7 +51,7 @@
   --radius: var(--sybol-radius-sm);
   --radius-lg: var(--sybol-radius);
   --shadow: var(--sybol-shadow-sm);
-  --shadow-lg: var(--sybol-shadow);
+  --shadow-lg: var(--sybol-shadow-card);
   --max-width: 1200px;
 }
 

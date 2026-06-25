@@ -1,0 +1,196 @@
+/* Patterns ported from Sybol.css / Sybol.html */
+
+.sybol-bg-gradient {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.sybol-bg-gradient__ball {
+  position: absolute;
+  border-radius: 50%;
+  aspect-ratio: 1;
+}
+
+.sybol-bg-gradient__ball--1 {
+  top: 0;
+  left: 0;
+  width: 60vw;
+  transform: translate(-30%, -30%);
+  background: radial-gradient(
+    circle at 50% 50%,
+    color-mix(in srgb, var(--sybol-400) 50%, transparent) 10%,
+    transparent 50%
+  );
+}
+
+.sybol-bg-gradient__ball--2 {
+  right: 0;
+  bottom: 0;
+  width: 70vw;
+  transform: translate(30%, 30%);
+  background: radial-gradient(
+    circle at 50% 50%,
+    color-mix(in srgb, var(--sybol-400) 45%, transparent) 10%,
+    transparent 50%
+  );
+}
+
+.sybol-bg-gradient__ball--3 {
+  top: 40%;
+  left: 50%;
+  width: 50vw;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    circle at 50% 50%,
+    color-mix(in srgb, var(--sybol-200) 25%, transparent) 10%,
+    transparent 55%
+  );
+}
+
+.sybol-chip {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 30px;
+  padding: 8px 15px;
+  font-size: var(--text-body-xs);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 0.9;
+}
+
+.sybol-chip--dark {
+  border: 2px solid var(--sybol-900);
+  color: var(--sybol-900);
+  background: transparent;
+}
+
+.sybol-chip--light {
+  border: 2px solid var(--sybol-200);
+  color: var(--sybol-800);
+  background: transparent;
+}
+
+.sybol-display-title {
+  margin: 0;
+  font-size: var(--text-display-sm);
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--sybol-900);
+  letter-spacing: -0.02em;
+}
+
+.sybol-display-title strong {
+  color: var(--sybol-800);
+}
+
+.sybol-section-lead {
+  margin: 1rem 0 0;
+  font-size: var(--text-body-lg);
+  line-height: 1.5;
+  color: var(--sybol-neutral-500);
+  max-width: 42rem;
+}
+
+.sybol-card-service {
+  background: var(--sybol-yellow-100);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--sybol-shadow-card);
+  padding: 1.75rem 1.5rem;
+  border: none;
+}
+
+@media (min-width: 768px) {
+  .sybol-card-service {
+    padding: 2rem 2.25rem;
+  }
+}
+
+.sybol-card-service .sybol-card-heading {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.25rem, 2vw, 1.75rem);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--sybol-900);
+}
+
+.sybol-card-service .sybol-card-intro {
+  margin: 0 0 1.25rem;
+  font-size: var(--text-body-md);
+  color: var(--sybol-neutral-500);
+  line-height: 1.55;
+}
+
+.sybol-card-white {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--sybol-shadow-card);
+  padding: 1.75rem 1.5rem;
+  border: none;
+}
+
+.sybol-card-white .sybol-card-heading {
+  margin: 0 0 1rem;
+  font-size: clamp(1.125rem, 1.5vw, 1.5rem);
+  font-weight: 700;
+  color: var(--sybol-900);
+}
+
+.btn-solid {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 15px 25px;
+  border: none;
+  border-radius: var(--sybol-radius-btn);
+  font-family: var(--font-primary);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  background: var(--sybol-900);
+  color: var(--sybol-200);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.btn-solid:hover:not(:disabled) {
+  background: var(--sybol-800);
+  color: var(--sybol-50);
+}
+
+.btn-solid:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-solid:focus-visible {
+  outline: 2px solid var(--sybol-200);
+  outline-offset: 2px;
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 13px 23px;
+  border: 2px solid var(--sybol-900);
+  border-radius: var(--sybol-radius-btn);
+  background: transparent;
+  color: var(--sybol-900);
+  font-family: var(--font-primary);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: var(--sybol-900);
+  color: var(--sybol-200);
+}
