@@ -91,3 +91,66 @@ all 11 claims, so the full signing path is confirmed end to end.
   real numbers.
 - `evidence_url` in issued VCs points at `http://localhost:6333/...` (the local
   Qdrant audit point). Fine for a local demo; needs a public URL if we go server.
+
+---
+
+## Development backlog (post-demo / general)
+
+Not needed for tomorrow, but this is the real "what's left to build/harden" list.
+
+### Deployment & infra
+- **Server deploy (`52.210.252.91`)**: add `javier` (+ `alex`) to the `docker`
+  group, run Qdrant there, ingest the corpus, run the API under **systemd** (not a
+  foreground uvicorn), open port 8000 / put it behind a reverse proxy.
+- **Railway path**: the Dockerfile is API-only — it does not build the frontend.
+  Either add an `npm ci && npm run build` stage that emits `frontend/dist`, or
+  deploy `frontend/` as a separate static site with `VITE_API_BASE_URL` pointing
+  at the API. (See `docs/RAILWAY_SETUP.md`.)
+- **Qdrant persistence**: confirm a mounted volume + a backup/restore plan so the
+  index survives restarts; document re-ingest as the recovery step.
+- **Public `evidence_url`**: today it points at local Qdrant. Production VCs need a
+  durable, publicly resolvable audit URL (object storage or an API audit route).
+- **Secrets management**: move off plaintext `src/.env` for prod (Railway/Vercel
+  env vars or a secrets manager). Never commit `.env` or `deploy/` keys.
+
+### Sybol / credentials
+- **Token caching**: we re-login to Cognito on every issue call (~adds latency).
+  Cache the access token for its ~1h lifetime and refresh on expiry.
+- **VC verification + revocation**: we issue signed VCs but have no verify flow or
+  `credentialStatus`/revocation story. Add a verify endpoint and decide on
+  revocation.
+
+### RAG quality (TC-005)
+- **Article granularity for the AI Act**: recital chunks have no article. Consider
+  splitting/tagging at article boundaries during ingestion, and optionally
+  capturing recital numbers, so EU AI Act citations are article-precise.
+- **Full green metrics run**: precision/recall/hallucination harness is wired and
+  labels are aligned, but a clean pass is gated by Mistral dev-tier rate limits.
+  Run it against a higher-tier key (or Ollama) to record real numbers.
+- **Production LLM resilience**: the 429 backoff lives only in the test harness.
+  The production `/api/query` makes a single call (fine for demo), but for
+  throughput add retry/backoff there and/or a paid Mistral tier.
+- **Ollama path**: integrated but unvalidated end-to-end — needs `ollama serve` +
+  model pulled, then verify `/api/query?llm_provider=ollama` as an offline fallback.
+
+### Scoring
+- **Milder edited batch**: current TC-003 images are heavily re-encoded JPEGs. A
+  batch of light edits that keep EXIF would exercise the original `EDITED_PROFILE`
+  path and broaden coverage.
+- **Real-world robustness**: thresholds are calibrated to the 77-image golden set;
+  validate against a larger/more varied set and consider Platt calibration (off by
+  default) once we have enough labelled data.
+
+### Frontend
+- **Real browser QA**: error states, loading states, large-file handling,
+  responsive/mobile, and the Issue tab against a slow `/api/issue`.
+- **No frontend tests**: add a minimal vitest/RTL setup for the API client and the
+  results components.
+
+### Engineering hygiene
+- **CI**: add GitHub Actions to run `pytest` + `npm run build` on every PR
+  (Bugbot is manual today).
+- **Observability**: structured logging + error tracking; silence/configure the
+  OpenTelemetry import warning.
+- **Remove `deploy/` keys from the repo working tree** — keep SSH keys outside the
+  project directory.
