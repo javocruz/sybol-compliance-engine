@@ -1,6 +1,6 @@
 import './TabNav.css';
 
-export type TabId = 'analyze' | 'query' | 'issue';
+export type TabId = 'analyze' | 'query' | 'issue' | 'audit';
 
 interface TabNavProps {
   activeTab: TabId;
@@ -11,6 +11,7 @@ const TABS: { id: TabId; label: string; stub?: boolean }[] = [
   { id: 'analyze', label: 'Analyze' },
   { id: 'query', label: 'Query' },
   { id: 'issue', label: 'Issue' },
+  { id: 'audit', label: 'Audit Trail' },
 ];
 
 export function TabNav({ activeTab, onTabChange }: TabNavProps) {

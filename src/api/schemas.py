@@ -41,3 +41,48 @@ class IssueResponse(BaseModel):
     signed: bool = False
     vc_payload: dict | None = None
     signed_vc: dict | None = None
+
+
+class AuthLoginRequest(BaseModel):
+    email: str = Field(..., min_length=3)
+    password: str = Field(..., min_length=1)
+
+
+class AuthStatusResponse(BaseModel):
+    authenticated: bool
+    email: str | None = None
+    catalog_configured: bool = False
+    session_active: bool = False
+
+
+class AuthLoginResponse(BaseModel):
+    authenticated: bool
+    email: str | None = None
+    catalog_configured: bool = False
+    session_active: bool = False
+
+
+class AuditRegulationRef(BaseModel):
+    regulation: str
+    article: str
+    url: str
+
+
+class AuditRecordResponse(BaseModel):
+    id: str
+    credential_id: str
+    evidence_url: str
+    media_hash: str
+    authenticity_score: float = Field(..., ge=0.0, le=1.0)
+    score_breakdown: ScoreBreakdown
+    compliance_status: Literal["compliant", "non-compliant", "review"]
+    model_version: str
+    analysis_timestamp: str
+    regulation_refs: list[AuditRegulationRef] = Field(default_factory=list)
+
+
+class AuditListResponse(BaseModel):
+    records: list[AuditRecordResponse]
+    total: int
+    limit: int
+    offset: int

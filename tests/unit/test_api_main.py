@@ -39,6 +39,7 @@ def test_app_registers_expected_routes():
     assert "/api/query" in paths
     assert "/api/analyze" in paths
     assert "/api/issue" in paths
+    assert "/api/audit" in paths
 
 
 def test_cors_middleware_registered():

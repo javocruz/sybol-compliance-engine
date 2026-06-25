@@ -1,16 +1,14 @@
 """Build Sybol BusinessWallet CredentialIssueRequest (OpenAPI v4)."""
 
-import json
-
 from src.api.dependencies import Settings
 from src.rag.models import ComplianceResult
 from src.scoring.models import ScoringResult
 
 
-def _claim(key: str, value: object) -> dict[str, str]:
+def _claim_value(value: object) -> object:
     if isinstance(value, (dict, list)):
-        return {"key": key, "value": json.dumps(value, separators=(",", ":"))}
-    return {"key": key, "value": str(value)}
+        return value
+    return str(value)
 
 
 def build_catalog_issue_request(
@@ -23,7 +21,8 @@ def build_catalog_issue_request(
     """
     Map scoring + RAG output to POST /api/bl/credentials body per openapi-wallet.yaml.
 
-    Required fields: documentId, issuerKey, subject, claims.
+    Required fields: documentId, issuerKey, recipientDid, claims.
+    Live API validates claims as a flat object (key -> value), not ClaimValue[].
     """
     document_id = settings.sybol_document_id
     issuer_key = settings.sybol_issuer_key
@@ -32,19 +31,22 @@ def build_catalog_issue_request(
             "SYBOL_DOCUMENT_ID and SYBOL_ISSUER_KEY are required for catalog issuance."
         )
 
-    subject = settings.sybol_subject_did or f"urn:media:{result.media_hash}"
+    recipient_did = settings.sybol_recipient_did or settings.sybol_subject_did
+    if not recipient_did:
+        raise ValueError(
+            "SYBOL_RECIPIENT_DID (or SYBOL_SUBJECT_DID) is required for catalog issuance."
+        )
 
-    claims = [
-        _claim("mediaHash", result.media_hash),
-        _claim("authenticityScore", result.authenticity_score),
-        _claim("complianceStatus", result.compliance_status.value),
-        _claim("modelVersion", result.model_version),
-        _claim("scoreBreakdown.m", result.score_breakdown.m),
-        _claim("scoreBreakdown.a", result.score_breakdown.a),
-        _claim("scoreBreakdown.v", result.score_breakdown.v),
-        _claim("scoreBreakdown.p", result.score_breakdown.p),
-        _claim(
-            "regulationRefs",
+    claims: dict[str, object] = {
+        "mediaHash": _claim_value(result.media_hash),
+        "authenticityScore": _claim_value(result.authenticity_score),
+        "complianceStatus": _claim_value(result.compliance_status.value),
+        "modelVersion": _claim_value(result.model_version),
+        "scoreBreakdown.m": _claim_value(result.score_breakdown.m),
+        "scoreBreakdown.a": _claim_value(result.score_breakdown.a),
+        "scoreBreakdown.v": _claim_value(result.score_breakdown.v),
+        "scoreBreakdown.p": _claim_value(result.score_breakdown.p),
+        "regulationRefs": _claim_value(
             [
                 {
                     "regulation": r.regulation,
@@ -52,19 +54,19 @@ def build_catalog_issue_request(
                     "url": r.source_url,
                 }
                 for r in rag.regulation_refs
-            ],
+            ]
         ),
-        _claim("ragSummary", rag.summary),
-    ]
+        "ragSummary": _claim_value(rag.summary),
+    }
     if evidence_url:
-        claims.append(_claim("evidenceUrl", evidence_url))
+        claims["evidenceUrl"] = _claim_value(evidence_url)
 
     body: dict = {
         "documentId": document_id,
         "issuerKey": issuer_key,
-        "subject": subject,
+        "recipientDid": recipient_did,
         "claims": claims,
-        "format": "w3c-vc",
+        "format": settings.sybol_credential_format,
     }
     if settings.sybol_level_of_assurance is not None:
         body["levelOfAssurance"] = settings.sybol_level_of_assurance

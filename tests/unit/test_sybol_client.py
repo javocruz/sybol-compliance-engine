@@ -11,16 +11,16 @@ from src.credentials.sybol_client import (
 )
 
 VALID_ACCESS = "access-token-abc"
-VALID_ID = "id-token-xyz"
+VALID_ID = "aaa.bbb.ccc"
 DOC_ID = "catalog-doc-uuid"
 ISSUER_KEY = "kms-key-1"
 
 ISSUE_REQUEST = {
     "documentId": DOC_ID,
     "issuerKey": ISSUER_KEY,
-    "subject": "urn:media:abc123",
-    "claims": [{"key": "mediaHash", "value": "abc123"}],
-    "format": "w3c-vc",
+    "recipientDid": "did:example:recipient",
+    "claims": {"mediaHash": "abc123"},
+    "format": "jwt_vc_json",
 }
 
 SIGNED_CREDENTIAL = {

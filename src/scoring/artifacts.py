@@ -20,7 +20,10 @@ def _clamp(value: float) -> float:
 
 
 def _is_synthetic_format(preprocessed: PreprocessedImage) -> bool:
-    return preprocessed.content_type in ("image/png", "image/webp") and not preprocessed.exif_tags
+    return (
+        preprocessed.content_type in ("image/png", "image/webp")
+        and not preprocessed.exif_tags
+    )
 
 
 def _fft_score(model_image) -> float:

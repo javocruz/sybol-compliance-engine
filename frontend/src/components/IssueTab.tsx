@@ -6,9 +6,14 @@ import { ImagePreview } from './ImagePreview';
 import { LoadingPanel } from './LoadingPanel';
 import { ErrorAlert } from './ErrorAlert';
 import { CredentialResultsPanel } from './CredentialResultsPanel';
+import { SybolAuthPanel } from './SybolAuthPanel';
 import './IssueTab.css';
 
-export function IssueTab() {
+interface IssueTabProps {
+  onViewAuditRecord?: (recordId: string) => void;
+}
+
+export function IssueTab({ onViewAuditRecord }: IssueTabProps) {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -47,7 +52,7 @@ export function IssueTab() {
       if (err instanceof ApiError) {
         if (err.status === 503 && err.message.includes('Sybol signing is not configured')) {
           setError(
-            `${err.message} Configure Sybol credentials in src/.env (see src/.env.example).`,
+            `${err.message} Sign in above with your Sybol wallet credentials.`,
           );
         } else if (err.status === 503) {
           setError(
@@ -68,6 +73,7 @@ export function IssueTab() {
 
   return (
     <div className="issue-tab">
+      <SybolAuthPanel />
       <div className="issue-tab-grid">
         <section className="issue-tab-upload card">
           <h2 className="issue-tab-heading">Issue credential</h2>
@@ -99,7 +105,10 @@ export function IssueTab() {
         <section className="issue-tab-results card">
           <h2 className="issue-tab-heading">Credential</h2>
           {results ? (
-            <CredentialResultsPanel results={results} />
+            <CredentialResultsPanel
+              results={results}
+              onViewAuditRecord={onViewAuditRecord}
+            />
           ) : (
             <p className="issue-tab-placeholder">
               Upload an image and issue a credential to see the signed VC details.

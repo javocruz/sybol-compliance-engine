@@ -96,9 +96,10 @@ async def issue(
         raise HTTPException(
             503,
             detail=(
-                "Sybol signing is not configured — set SYBOL_DOCUMENT_ID, "
-                "SYBOL_ISSUER_KEY, and either SYBOL_ACCESS_TOKEN + SYBOL_ID_TOKEN "
-                "or SYBOL_EMAIL + SYBOL_PASSWORD."
+                "Sybol signing is not configured — sign in on the Issue tab, or set "
+                "SYBOL_ACCESS_TOKEN and SYBOL_ID_TOKEN in src/.env. Catalog issuance "
+                "also requires SYBOL_DOCUMENT_ID, SYBOL_ISSUER_KEY, and "
+                "SYBOL_RECIPIENT_DID."
             ),
         )
 

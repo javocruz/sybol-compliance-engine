@@ -22,7 +22,9 @@ def test_query_regulations_returns_compliance_result(
 def test_query_regulations_with_ollama_provider(
     mock_synthesis_llm, mock_vector_index, env_vars, mocker
 ):
-    mock_get_llm = mocker.patch("rag.query.get_synthesis_llm", return_value=mock_synthesis_llm)
+    mock_get_llm = mocker.patch(
+        "rag.query.get_synthesis_llm", return_value=mock_synthesis_llm
+    )
 
     result = query_regulations(
         query="AI transparency rules",

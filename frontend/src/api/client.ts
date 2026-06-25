@@ -1,6 +1,10 @@
 import type {
   AnalyzeResponse,
   ApiErrorBody,
+  AuditListResponse,
+  AuditRecord,
+  AuthLoginResponse,
+  AuthStatusResponse,
   HealthResponse,
   IssueResponse,
   LlmProvider,
@@ -8,6 +12,8 @@ import type {
 } from '../types/api';
 
 const base = import.meta.env.VITE_API_BASE_URL ?? '';
+
+const fetchOptions: RequestInit = { credentials: 'include' };
 
 export class ApiError extends Error {
   status?: number;
@@ -70,9 +76,71 @@ export async function queryRegulations(
 export async function issueCredential(file: File): Promise<IssueResponse> {
   const form = new FormData();
   form.append('file', file);
-  const res = await fetch(`${base}/api/issue`, { method: 'POST', body: form });
+  const res = await fetch(`${base}/api/issue`, {
+    method: 'POST',
+    body: form,
+    credentials: 'include',
+  });
   if (!res.ok) {
     throw new ApiError(await parseErrorMessage(res), res.status);
   }
   return res.json() as Promise<IssueResponse>;
+}
+
+export async function authStatus(): Promise<AuthStatusResponse> {
+  const res = await fetch(`${base}/api/auth/status`, fetchOptions);
+  if (!res.ok) {
+    throw new ApiError(await parseErrorMessage(res), res.status);
+  }
+  return res.json() as Promise<AuthStatusResponse>;
+}
+
+export async function authLogin(
+  email: string,
+  password: string,
+): Promise<AuthLoginResponse> {
+  const res = await fetch(`${base}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    throw new ApiError(await parseErrorMessage(res), res.status);
+  }
+  return res.json() as Promise<AuthLoginResponse>;
+}
+
+export async function authLogout(): Promise<AuthLoginResponse> {
+  const res = await fetch(`${base}/api/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    throw new ApiError(await parseErrorMessage(res), res.status);
+  }
+  return res.json() as Promise<AuthLoginResponse>;
+}
+
+export async function fetchAuditRecords(
+  limit = 50,
+  offset = 0,
+): Promise<AuditListResponse> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+  const res = await fetch(`${base}/api/audit?${params.toString()}`);
+  if (!res.ok) {
+    throw new ApiError(await parseErrorMessage(res), res.status);
+  }
+  return res.json() as Promise<AuditListResponse>;
+}
+
+export async function fetchAuditRecord(recordId: string): Promise<AuditRecord> {
+  const res = await fetch(`${base}/api/audit/${encodeURIComponent(recordId)}`);
+  if (!res.ok) {
+    throw new ApiError(await parseErrorMessage(res), res.status);
+  }
+  return res.json() as Promise<AuditRecord>;
 }

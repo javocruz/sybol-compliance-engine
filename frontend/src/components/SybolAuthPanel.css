@@ -1,0 +1,92 @@
+.sybol-auth {
+  margin-bottom: 1.5rem;
+}
+
+.sybol-auth-heading {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.sybol-auth-intro,
+.sybol-auth-muted,
+.sybol-auth-hint {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.sybol-auth-hint {
+  margin-top: 1rem;
+  margin-bottom: 0;
+}
+
+.sybol-auth-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.sybol-auth-label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.sybol-auth-input {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.9375rem;
+  font-family: inherit;
+}
+
+.sybol-auth-input:focus {
+  outline: 2px solid var(--color-accent-light);
+  border-color: var(--color-accent);
+}
+
+.sybol-auth-submit,
+.sybol-auth-logout {
+  justify-self: start;
+}
+
+.sybol-auth-signed-in {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.sybol-auth-status-line {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+}
+
+.sybol-auth-status-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+}
+
+.sybol-auth-status-dot--ok {
+  background: var(--color-compliant);
+}
+
+@media (min-width: 768px) {
+  .sybol-auth-form {
+    grid-template-columns: 1fr 1fr auto;
+    align-items: end;
+  }
+
+  .sybol-auth-submit {
+    margin-bottom: 0.125rem;
+  }
+}

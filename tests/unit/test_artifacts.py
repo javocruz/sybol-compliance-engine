@@ -1,5 +1,4 @@
 from scoring.artifacts import score_artifacts
-from scoring.detector import predict_fake_probability
 from scoring.preprocess import preprocess
 
 

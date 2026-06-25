@@ -106,9 +106,16 @@ def authed_get(base: str, path: str, access: str, id_token: str) -> dict[str, An
     if isinstance(body, dict) and "data" in body:
         data = body["data"]
         if isinstance(data, list):
-            preview = {"success": body.get("success"), "data_count": len(data), "sample": data[:2]}
+            preview = {
+                "success": body.get("success"),
+                "data_count": len(data),
+                "sample": data[:2],
+            }
         elif isinstance(data, dict):
-            preview = {"success": body.get("success"), "data_keys": list(data.keys())[:20]}
+            preview = {
+                "success": body.get("success"),
+                "data_keys": list(data.keys())[:20],
+            }
 
     return {
         "url": url,
@@ -119,7 +126,11 @@ def authed_get(base: str, path: str, access: str, id_token: str) -> dict[str, An
 
 
 def probe_issue_formats(
-    base: str, access: str, id_token: str, document_id: str | None, issuer_key: str | None
+    base: str,
+    access: str,
+    id_token: str,
+    document_id: str | None,
+    issuer_key: str | None,
 ) -> list[dict[str, Any]]:
     headers = {
         "Authorization": f"Bearer {access}",
@@ -132,13 +143,13 @@ def probe_issue_formats(
     catalog_body = {
         "documentId": document_id or "00000000-0000-4000-8000-000000000001",
         "issuerKey": issuer_key or "probe-key",
-        "subject": "urn:media:probe000000000000000000000000000000000000000000000000000000",
-        "claims": [
-            {"key": "mediaHash", "value": "probe"},
-            {"key": "authenticityScore", "value": "0.5"},
-            {"key": "complianceStatus", "value": "review"},
-        ],
-        "format": "w3c-vc",
+        "recipientDid": "did:example:recipient",
+        "claims": {
+            "mediaHash": "probe",
+            "authenticityScore": "0.5",
+            "complianceStatus": "review",
+        },
+        "format": "jwt_vc_json",
     }
     raw_vc_body = {
         "@context": ["https://www.w3.org/2018/credentials/v1"],
@@ -168,7 +179,9 @@ def probe_issue_formats(
                 "format": label,
                 "status": r.status_code,
                 "ok": r.is_success,
-                "preview": _short(json.dumps(body) if not isinstance(body, str) else body, 400),
+                "preview": _short(
+                    json.dumps(body) if not isinstance(body, str) else body, 400
+                ),
             }
         )
     return results
@@ -187,7 +200,9 @@ def main() -> int:
         r = httpx.get(f"{HOSTS[0]}/api/catalog/documents?limit=5", timeout=TIMEOUT)
         if r.is_success:
             n = len(r.json().get("data", []))
-            print(f"  [OK] GET {HOSTS[0]}/api/catalog/documents -> {n}+ docs (no auth)\n")
+            print(
+                f"  [OK] GET {HOSTS[0]}/api/catalog/documents -> {n}+ docs (no auth)\n"
+            )
     except Exception:
         pass
 
@@ -196,7 +211,9 @@ def main() -> int:
     for host in HOSTS:
         for path in LOGIN_PATHS:
             result = try_login(host, path, email, password)
-            flag = "OK" if result.get("ok") else result.get("status", result.get("error"))
+            flag = (
+                "OK" if result.get("ok") else result.get("status", result.get("error"))
+            )
             print(f"  [{flag}] {result['url']}")
             if result.get("challenge"):
                 print(f"       challenge: {result['challenge']}")
@@ -214,7 +231,9 @@ def main() -> int:
 
     if not winners:
         print("\nNo successful login. Cannot probe catalog or issuance.")
-        print("Try: VPN, different network, or credentials may target another environment.")
+        print(
+            "Try: VPN, different network, or credentials may target another environment."
+        )
         return 2
 
     base, path, access, id_token = winners[0]
@@ -240,11 +259,15 @@ def main() -> int:
         print(json.dumps(fmt, indent=2))
 
     print("\n=== 4. Interpretation ===")
-    print("  - 201 on catalog_v4 → use catalog_issue_builder + documentId/issuerKey from catalog")
+    print(
+        "  - 201 on catalog_v4 → use catalog_issue_builder + documentId/issuerKey from catalog"
+    )
     print("  - 201 on raw_w3c_vc → use vc_builder payload (businessLogic doc style)")
     print("  - 401 → tokens or host wrong")
     print("  - 404 on issue → wrong path or host")
-    print("  - 422 → format recognized but validation failed (check catalog claims / IDs)")
+    print(
+        "  - 422 → format recognized but validation failed (check catalog claims / IDs)"
+    )
     return 0
 
 

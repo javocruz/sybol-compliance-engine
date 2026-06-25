@@ -10,6 +10,8 @@ from typing import Any
 
 import httpx
 
+from src.credentials.auth_tokens import is_valid_jwt, normalize_token
+
 logger = logging.getLogger(__name__)
 
 _TBD_PREFIX = "TBD_"
@@ -37,8 +39,8 @@ class SybolClient:
         timeout: float = 10.0,
     ) -> None:
         self._api_base_url = (api_base_url or DEFAULT_API_BASE_URL).rstrip("/")
-        self._access_token = access_token
-        self._id_token = id_token
+        self._access_token = normalize_token(access_token)
+        self._id_token = normalize_token(id_token)
         self._email = email
         self._password = password
         self._document_id = document_id
@@ -83,9 +85,13 @@ class SybolClient:
             )
         assert self._access_token is not None
         assert self._id_token is not None
+        if not is_valid_jwt(self._id_token):
+            raise SybolSigningError(
+                "Invalid Sybol ID token — expected a 3-part JWT. Sign in again on the Issue tab."
+            )
         return {
             "Authorization": f"Bearer {self._access_token}",
-            "X-Id-Token": self._id_token,
+            "x-id-token": self._id_token,
             "Content-Type": "application/json",
         }
 

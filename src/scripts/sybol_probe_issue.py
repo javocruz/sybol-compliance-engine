@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 from pathlib import Path
 
 # Load src/.env if present (simple parse, no dotenv dep required)
@@ -59,12 +58,16 @@ def main() -> int:
         for d in docs[:15]:
             print(f"  {d.get('code') or d.get('name')}: id={d.get('id')}")
         if not settings.sybol_document_id:
-            print("  Set SYBOL_DOCUMENT_ID from list above (or ask Iñigo for MediaCompliance doc)")
+            print(
+                "  Set SYBOL_DOCUMENT_ID from list above (or ask Iñigo for MediaCompliance doc)"
+            )
     except SybolSigningError as exc:
         print(f"  FAILED: {exc}")
 
     if not settings.sybol_document_id or not settings.sybol_issuer_key:
-        print("\nSkipping issue probe — SYBOL_DOCUMENT_ID and SYBOL_ISSUER_KEY required.")
+        print(
+            "\nSkipping issue probe — SYBOL_DOCUMENT_ID and SYBOL_ISSUER_KEY required."
+        )
         return 2
 
     print("\n=== Issue probe (dry run payload) ===")
@@ -88,7 +91,10 @@ def main() -> int:
     )
     try:
         req = build_catalog_issue_request(
-            result, rag, settings=settings, evidence_url="https://example.com/audit/demo"
+            result,
+            rag,
+            settings=settings,
+            evidence_url="https://example.com/audit/demo",
         )
         print(json.dumps(req, indent=2)[:800])
         signed = client.issue_credential(req)

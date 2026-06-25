@@ -95,3 +95,37 @@ export interface IssueResponse {
   vc_payload: VcPayload | null;
   signed_vc: SignedVc | null;
 }
+
+export interface AuthStatusResponse {
+  authenticated: boolean;
+  email?: string | null;
+  catalog_configured: boolean;
+  session_active: boolean;
+}
+
+export interface AuthLoginResponse {
+  authenticated: boolean;
+  email?: string | null;
+  catalog_configured: boolean;
+  session_active: boolean;
+}
+
+export interface AuditRecord {
+  id: string;
+  credential_id: string;
+  evidence_url: string;
+  media_hash: string;
+  authenticity_score: number;
+  score_breakdown: ScoreBreakdown;
+  compliance_status: ComplianceStatus;
+  model_version: string;
+  analysis_timestamp: string;
+  regulation_refs: RegulationRef[];
+}
+
+export interface AuditListResponse {
+  records: AuditRecord[];
+  total: number;
+  limit: number;
+  offset: number;
+}

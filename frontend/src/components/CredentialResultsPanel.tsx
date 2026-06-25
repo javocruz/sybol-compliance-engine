@@ -9,6 +9,7 @@ import './CredentialResultsPanel.css';
 
 interface CredentialResultsPanelProps {
   results: IssueResponse;
+  onViewAuditRecord?: (recordId: string) => void;
 }
 
 function toRegulationRefs(refs: VcRegulationRef[]): RegulationRef[] {
@@ -24,7 +25,15 @@ function truncateId(id: string, visible = 12): string {
   return `${id.slice(0, visible)}…${id.slice(-visible)}`;
 }
 
-export function CredentialResultsPanel({ results }: CredentialResultsPanelProps) {
+function recordIdFromEvidenceUrl(url: string): string | null {
+  const match = url.match(/\/points\/([^/?#]+)$/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+export function CredentialResultsPanel({
+  results,
+  onViewAuditRecord,
+}: CredentialResultsPanelProps) {
   const subject = results.vc_payload?.credentialSubject;
   const signed = results.signed_vc;
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -117,14 +126,33 @@ export function CredentialResultsPanel({ results }: CredentialResultsPanelProps)
       {subject.evidenceUrl && (
         <div className="credential-evidence">
           <span className="credential-id-label">Audit evidence</span>
-          <a
-            href={subject.evidenceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="credential-evidence-link"
-          >
-            View audit record
-          </a>
+          {(() => {
+            const recordId =
+              recordIdFromEvidenceUrl(subject.evidenceUrl) ??
+              results.vc_id?.removeprefix('urn:uuid:') ??
+              null;
+            if (recordId && onViewAuditRecord) {
+              return (
+                <button
+                  type="button"
+                  className="credential-evidence-link"
+                  onClick={() => onViewAuditRecord(recordId)}
+                >
+                  View in Audit Trail
+                </button>
+              );
+            }
+            return (
+              <a
+                href={subject.evidenceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="credential-evidence-link"
+              >
+                View audit record
+              </a>
+            );
+          })()}
         </div>
       )}
 

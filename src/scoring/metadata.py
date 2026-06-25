@@ -11,8 +11,6 @@ from .constants import (
     PNG_WEBP_NO_EXIF_SCORE,
     REQUIRED_EXIF_FIELDS,
 )
-
-
 from .preprocess import PreprocessedImage
 
 

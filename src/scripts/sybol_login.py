@@ -18,9 +18,7 @@ from src.credentials.sybol_client import SybolClient, SybolSigningError
 def main() -> int:
     email = os.getenv("SYBOL_EMAIL")
     password = os.getenv("SYBOL_PASSWORD")
-    base_url = os.getenv(
-        "SYBOL_API_BASE_URL", "https://api.develop.wallet.sybol.id"
-    )
+    base_url = os.getenv("SYBOL_API_BASE_URL", "https://api.develop.wallet.sybol.id")
 
     if not email or not password:
         print("Set SYBOL_EMAIL and SYBOL_PASSWORD in the environment.", file=sys.stderr)

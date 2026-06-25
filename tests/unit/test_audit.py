@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from src.api.dependencies import Settings
-from src.credentials.audit import write_audit_record
+from src.credentials.audit import get_audit_record, list_audit_records, write_audit_record
 from src.rag.models import ComplianceResult, RegulationRef
 from src.scoring.models import ComplianceStatus, ScoringResult, SignalBreakdown
 
@@ -128,3 +128,64 @@ def test_returns_url_containing_point_id(scoring_result, compliance_result, sett
     assert "abc-123" in url
     assert "media_audit" in url
     assert url.startswith("http://localhost:6333")
+
+
+def test_list_audit_records_returns_empty_when_collection_missing(settings):
+    client = _make_client([])
+    records, total = list_audit_records(client, settings)
+    assert records == []
+    assert total == 0
+
+
+def test_list_audit_records_sorts_newest_first(scoring_result, compliance_result, settings):
+    client = _make_client(["media_audit"])
+    older = MagicMock()
+    older.id = "older-id"
+    older.payload = {
+        "mediaHash": "aaa",
+        "authenticityScore": 0.5,
+        "scoreBreakdown": {"m": 0.5, "a": 0.5, "v": 0.5, "p": 0.5},
+        "complianceStatus": "review",
+        "modelVersion": "v1.0",
+        "analysisTimestamp": "2026-01-01T00:00:00Z",
+        "regulationRefs": [],
+    }
+    newer = MagicMock()
+    newer.id = "newer-id"
+    newer.payload = {
+        "mediaHash": "bbb",
+        "authenticityScore": 0.9,
+        "scoreBreakdown": {"m": 0.9, "a": 0.9, "v": 0.9, "p": 0.9},
+        "complianceStatus": "compliant",
+        "modelVersion": "v1.0",
+        "analysisTimestamp": "2026-06-01T00:00:00Z",
+        "regulationRefs": [],
+    }
+    client.scroll.return_value = ([older, newer], None)
+
+    records, total = list_audit_records(client, settings)
+    assert total == 2
+    assert records[0]["id"] == "newer-id"
+    assert records[1]["id"] == "older-id"
+
+
+def test_get_audit_record_returns_none_when_missing(settings):
+    client = _make_client(["media_audit"])
+    client.retrieve.return_value = []
+    assert get_audit_record("missing", client, settings) is None
+
+
+def test_get_audit_record_returns_formatted_record(scoring_result, compliance_result, settings):
+    client = _make_client(["media_audit"])
+    point = MagicMock()
+    point.id = "abc-123"
+    write_audit_record(scoring_result, compliance_result, "urn:uuid:abc-123", client, settings)
+    point.payload = client.upsert.call_args.kwargs["points"][0].payload
+    client.retrieve.return_value = [point]
+
+    record = get_audit_record("abc-123", client, settings)
+    assert record is not None
+    assert record["id"] == "abc-123"
+    assert record["credential_id"] == "urn:uuid:abc-123"
+    assert record["media_hash"] == "deadbeef001122"
+    assert record["regulation_refs"][0]["url"] == "https://eur-lex.europa.eu/aiact"
