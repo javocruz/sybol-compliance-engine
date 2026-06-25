@@ -132,6 +132,14 @@ restartPolicyType = "on_failure"
 2. Confirm builder is **Dockerfile** (or Nixpacks if Dockerfile is disabled — Dockerfile is preferred for reproducibility).
 3. Root directory: `/` (repo root).
 
+> **Note — frontend is not built by this Dockerfile.** The image is Python/API
+> only, so `frontend/dist` is absent and the API serves endpoints without the
+> bundled UI (the SPA mount in `src/api/main.py` is guarded by `if _dist.is_dir()`,
+> so this degrades gracefully — no crash). To serve the web UI from this service,
+> either add an `npm ci && npm run build` stage to the Dockerfile that emits
+> `frontend/dist`, or deploy `frontend/` as a separate static site (Vercel/Netlify/
+> Railway static) pointing `VITE_API_BASE_URL` at this service's public domain.
+
 ### Public domain
 
 1. Open **FastAPI service** → **Settings** → **Networking**.

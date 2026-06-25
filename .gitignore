@@ -27,3 +27,9 @@ frontend/dist/
 # Conda Env
 condaenv*.requirements.txt
 FETCH_HEAD
+
+# Test / coverage artifacts
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
