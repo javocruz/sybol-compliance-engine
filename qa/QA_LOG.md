@@ -4,6 +4,38 @@ Owner: Saba Zarandia (QA Lead). Per project doc §3.5 — dated results, issue r
 
 ---
 
+## 2026-06-25 — TC-003 verified on the golden set (QA, on `feat/local-ready`)
+
+Youssef delivered 10 edited images and Javier integrated them + added the scorer
+profile that maps re-saved edited JPEGs to the review band (both on
+`feat/local-ready`). This entry records the **independent QA verification** of that
+work — I re-ran the regression harness against the live data rather than trusting
+the committed `scoring_report.csv`.
+
+**Verified (full dependency set, golden set now 77 images: 30 authentic / 37 AI / 10 edited):**
+
+| Test | Result |
+|------|--------|
+| `test_scoring_regression.py` (TC-001/002/003 bands + suite metrics) | ✅ **3/3 passed** on all 77 images |
+| `test_per_image_score_bands` | ✅ every edited image in 0.3–0.7 / review |
+| `test_suite_level_accuracy_and_error_rates` | ✅ accuracy 100%, FPR 0%, FNR 0% |
+| `test_scorer.py` + `test_scorer_properties.py` | ✅ 11 passed (incl. updated synthetic-cap carve-out) |
+
+Edited images score in the **0.35–0.40** band → status `review` (10/10 pass). Code
+confirmed real, not just CSV: the `EDITED_RESAVED_*` profile exists in
+`scoring/constants.py` + `scoring/scorer.py`, and `_is_resaved_edited` is excluded
+from the synthetic-cap property test.
+
+**TC-003 status: PASSING.** All of TC-001/002/003 now hold on the 77-image set.
+
+*Ownership note:* the edited images are Youssef's; the scorer profile + integration
+are Javier's (`feat/local-ready`, not yet merged to `devel`/`main`). QA contribution
+here is the regression harness (`tests/integration/test_scoring_regression.py`,
+which already handled the `edited` band) and this verification run. Lands when
+`feat/local-ready` merges.
+
+---
+
 ## 2026-06-24 — TC-004 hardening, E2E scaffold, RAG-metrics harness (`devel`)
 
 **Branch base:** `devel` @ `ca9504d`. Merged this date: PR #9 (TC-004), PR #10 (E2E).
@@ -43,6 +75,7 @@ Engineering ingests the PDFs and brings Qdrant online, then runs with no change.
   merged or PR-ready.
 - **Still blocked (not QA-owned):** TC-003 edited images (Youssef — still 0 in
   manifest); live TC-005 run (Eng — Qdrant + ingest); Sybol signed VC (Pelayo/Iñigo).
+  *(Superseded 2026-06-25: TC-003 now delivered + verified — see entry at top.)*
 
 ---
 
