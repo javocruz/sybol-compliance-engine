@@ -17,6 +17,7 @@ def env_vars(monkeypatch):
     monkeypatch.setenv(
         "MISTRAL_API_KEY", os.environ.get("MISTRAL_API_KEY", "test-mistral-key")
     )
+    monkeypatch.setenv("DISABLE_RATE_LIMIT", "1")
 
 
 @pytest.fixture

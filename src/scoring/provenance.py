@@ -48,14 +48,29 @@ def _hamming_distance(hash_a: str, hash_b: str) -> int:
 
 
 def score_provenance(preprocessed: PreprocessedImage) -> float:
+    score, _, _ = score_provenance_with_details(preprocessed)
+    return score
+
+
+def score_provenance_with_details(
+    preprocessed: PreprocessedImage,
+) -> tuple[float, int | None, str | None]:
+    """Return (normalized score 0-1, min pHash distance, matched reference filename)."""
     index = get_provenance_index()
     if not index:
-        return EMPTY_PROVENANCE_DEFAULT
+        return EMPTY_PROVENANCE_DEFAULT, None, None
 
     query_hash = str(imagehash.phash(preprocessed.original_image))
-    distances = [_hamming_distance(query_hash, ref_hash) for ref_hash in index]
-    min_distance = min(distances)
+    best_name: str | None = None
+    min_distance = 999
+    for ref_hash, name in index.items():
+        dist = _hamming_distance(query_hash, ref_hash)
+        if dist < min_distance:
+            min_distance = dist
+            best_name = name
 
     if min_distance <= PHASH_MATCH_THRESHOLD:
-        return max(0.0, min(1.0, 1.0 - min_distance / (PHASH_MATCH_THRESHOLD + 1)))
-    return max(0.0, min(1.0, 0.42 - min_distance / 48.0))
+        score = max(0.0, min(1.0, 1.0 - min_distance / (PHASH_MATCH_THRESHOLD + 1)))
+        return score, min_distance, best_name
+    score = max(0.0, min(1.0, 0.42 - min_distance / 48.0))
+    return score, min_distance, None

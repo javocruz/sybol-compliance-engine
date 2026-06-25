@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from llama_index.core import VectorStoreIndex
 from qdrant_client import QdrantClient
 
+from src.api.auth import require_api_key
 from src.api.dependencies import (
     Settings,
     get_index,
@@ -12,6 +13,7 @@ from src.api.dependencies import (
     get_sybol_client,
 )
 from src.api.schemas import IssueResponse
+from src.api.upload import read_validated_image
 from src.credentials.audit import write_audit_record
 from src.credentials.catalog_issue_builder import build_catalog_issue_request
 from src.credentials.sybol_client import (
@@ -26,8 +28,6 @@ from src.scoring.preprocess import ScoringError
 
 router = APIRouter(tags=["credentials"])
 
-SUPPORTED_TYPES = ("image/jpeg", "image/png", "image/webp")
-
 
 @router.post(
     "/issue",
@@ -35,26 +35,25 @@ SUPPORTED_TYPES = ("image/jpeg", "image/png", "image/webp")
     summary="Issue a signed W3C Verifiable Credential for a media file",
     responses={
         400: {"description": "Unsupported or corrupted file"},
+        413: {"description": "File exceeds size limit"},
         502: {"description": "Sybol signing API returned an error"},
         503: {"description": "Sybol signing not configured, or Qdrant unavailable"},
     },
 )
 async def issue(
     file: UploadFile = File(...),
+    _: None = Depends(require_api_key),
     index: VectorStoreIndex = Depends(get_index),
     qdrant_client: QdrantClient = Depends(get_qdrant_client),
     settings: Settings = Depends(get_settings),
     sybol: SybolClient = Depends(get_sybol_client),
 ):
-    if file.content_type not in SUPPORTED_TYPES:
-        raise HTTPException(400, "Unsupported file type")
-
-    content = await file.read()
+    content, filename, content_type = await read_validated_image(file)
     try:
         result = score_image(
             content,
-            filename=file.filename,
-            content_type=file.content_type,
+            filename=filename,
+            content_type=content_type,
         )
     except ScoringError as exc:
         raise HTTPException(400, detail=str(exc)) from exc
@@ -122,4 +121,5 @@ async def issue(
         signed=True,
         vc_payload=payload,
         signed_vc=signed_vc,
+        evidence_url=evidence_url,
     )

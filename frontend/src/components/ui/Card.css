@@ -1,0 +1,33 @@
+.sybol-card {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 1.25rem;
+}
+
+.sybol-card--default {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.sybol-card--accent {
+  background: var(--sybol-yellow-100);
+  border: 1px solid var(--sybol-yellow-200);
+}
+
+.sybol-card--vc {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  padding: 0;
+}
+
+.sybol-card--vc .sybol-card__header {
+  background: var(--sybol-900);
+  color: var(--sybol-200);
+  padding: 1rem 1.25rem;
+  font-weight: 600;
+}
+
+.sybol-card--vc .sybol-card__body {
+  padding: 1.25rem;
+}

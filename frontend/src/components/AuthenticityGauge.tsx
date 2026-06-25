@@ -12,6 +12,12 @@ export function AuthenticityGauge({ score }: AuthenticityGaugeProps) {
   return (
     <div className="authenticity-gauge">
       <svg className="authenticity-gauge-ring" viewBox="0 0 120 120" aria-hidden="true">
+        <defs>
+          <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="var(--sybol-800)" />
+            <stop offset="100%" stopColor="var(--sybol-100)" />
+          </linearGradient>
+        </defs>
         <circle className="authenticity-gauge-track" cx="60" cy="60" r="54" />
         <circle
           className="authenticity-gauge-fill"

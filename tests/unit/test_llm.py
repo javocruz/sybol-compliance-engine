@@ -10,6 +10,7 @@ from rag.llm import (
     get_ollama_model,
     get_synthesis_llm,
     normalize_provider,
+    resolve_provider,
 )
 
 
@@ -25,6 +26,11 @@ def test_normalize_provider_mistral_and_unknown():
 def test_get_model_name():
     assert get_model_name("mistral") == "mistral-large-latest"
     assert get_model_name("ollama") == get_ollama_model()
+
+
+def test_resolve_provider_falls_back_to_ollama_without_key(monkeypatch):
+    monkeypatch.delenv("MISTRAL_API_KEY", raising=False)
+    assert resolve_provider("mistral") == "ollama"
 
 
 def test_get_synthesis_llm_mistral_requires_api_key(monkeypatch):

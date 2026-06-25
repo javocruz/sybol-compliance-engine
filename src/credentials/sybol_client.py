@@ -6,6 +6,8 @@ Issuance: POST /api/bl/credentials with CredentialIssueRequest (catalog + claims
 """
 
 import logging
+import os
+import time
 from typing import Any
 
 import httpx
@@ -19,6 +21,8 @@ from .cognito_auth import (
 )
 
 logger = logging.getLogger(__name__)
+
+_TOKEN_TTL_SECONDS = float(os.getenv("SYBOL_TOKEN_TTL_SECONDS", "3000"))
 
 _TBD_PREFIX = "TBD_"
 DEFAULT_API_BASE_URL = "https://api.develop.wallet.sybol.id"
@@ -64,6 +68,17 @@ class SybolClient:
         self._cognito_client_id = cognito_client_id or DEFAULT_COGNITO_CLIENT_ID
         self._cognito_region = cognito_region or DEFAULT_COGNITO_REGION
         self._timeout = timeout
+        self._token_cached_at: float | None = None
+
+    def _tokens_fresh(self) -> bool:
+        if not self._has_valid_tokens():
+            return False
+        if self._token_cached_at is None:
+            return True
+        return (time.time() - self._token_cached_at) < _TOKEN_TTL_SECONDS
+
+    def _invalidate_tokens(self) -> None:
+        self._token_cached_at = None
 
     @property
     def is_configured(self) -> bool:
@@ -167,6 +182,7 @@ class SybolClient:
             raise SybolSigningError("Login response missing accessToken or idToken.")
         self._access_token = access
         self._id_token = id_token
+        self._token_cached_at = time.time()
 
     def _api_login(self, path: str) -> dict[str, Any]:
         assert self._email is not None
@@ -214,6 +230,9 @@ class SybolClient:
         return data
 
     def ensure_authenticated(self) -> None:
+        if self._tokens_fresh():
+            return
+        self._invalidate_tokens()
         if not self._has_valid_tokens():
             self.login()
 

@@ -1,0 +1,50 @@
+.status-tab__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.status-tab__title {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--sybol-900);
+}
+
+.status-tab__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.status-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.status-card__label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.status-card__value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--sybol-900);
+  word-break: break-all;
+}
+
+.status-card__value--ok {
+  color: var(--color-compliant);
+}
+
+.status-card__value--bad {
+  color: var(--color-non-compliant);
+}

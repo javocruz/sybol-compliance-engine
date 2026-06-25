@@ -1,0 +1,32 @@
+.sybol-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  background: var(--sybol-50);
+  color: var(--sybol-900);
+  border: 1px solid var(--sybol-200);
+  text-decoration: none;
+  cursor: default;
+}
+
+button.sybol-chip {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+button.sybol-chip:hover {
+  background: var(--sybol-200);
+}
+
+.sybol-chip--active {
+  background: var(--sybol-800);
+  color: #fff;
+  border-color: var(--sybol-800);
+}
+
+a.sybol-chip:hover {
+  background: var(--sybol-200);
+}

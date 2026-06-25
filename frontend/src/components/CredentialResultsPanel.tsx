@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import type { IssueResponse, RegulationRef, VcRegulationRef } from '../types/api';
+import { useEffect, useState } from 'react';
+import { fetchVerifyCredential } from '../api/client';
+import type { IssueResponse, RegulationRef, VerifyResponse, VcRegulationRef } from '../types/api';
 import { ComplianceBadge } from './ComplianceBadge';
 import { AuthenticityGauge } from './AuthenticityGauge';
 import { ScoreBreakdownPanel } from './ScoreBreakdown';
@@ -24,10 +25,54 @@ function truncateId(id: string, visible = 12): string {
   return `${id.slice(0, visible)}…${id.slice(-visible)}`;
 }
 
+function verifyStatusLabel(verify: VerifyResponse): string {
+  if (!verify.audit_found) return 'No audit record';
+  if (verify.revoked) return 'Revoked';
+  if (verify.valid) return 'Valid';
+  return 'Invalid';
+}
+
+function verifyStatusClass(verify: VerifyResponse): string {
+  if (!verify.audit_found) return 'credential-verify-status--missing';
+  if (verify.revoked) return 'credential-verify-status--revoked';
+  if (verify.valid) return 'credential-verify-status--valid';
+  return 'credential-verify-status--invalid';
+}
+
 export function CredentialResultsPanel({ results }: CredentialResultsPanelProps) {
   const subject = results.vc_payload?.credentialSubject;
   const signed = results.signed_vc;
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [verify, setVerify] = useState<VerifyResponse | null>(null);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+
+  useEffect(() => {
+    if (!results.vc_id) {
+      setVerify(null);
+      setVerifyError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setVerifyLoading(true);
+    setVerifyError(null);
+
+    void fetchVerifyCredential(results.vc_id)
+      .then((response) => {
+        if (!cancelled) setVerify(response);
+      })
+      .catch(() => {
+        if (!cancelled) setVerifyError('Could not verify credential status.');
+      })
+      .finally(() => {
+        if (!cancelled) setVerifyLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [results.vc_id]);
 
   const copyText = async (field: string, text: string) => {
     try {
@@ -62,9 +107,14 @@ export function CredentialResultsPanel({ results }: CredentialResultsPanelProps)
   }
 
   const regulationRefs = toRegulationRefs(subject.regulationRefs);
+  const evidenceUrl = results.evidence_url ?? subject.evidenceUrl ?? null;
 
   return (
-    <div className="credential-results">
+    <div className="credential-results credential-results--vc-card">
+      <div className="credential-results-vc-header">
+        <span>{results.signed ? 'Signed Verifiable Credential' : 'Credential'}</span>
+      </div>
+      <div className="credential-results-vc-body">
       <div className="credential-results-header">
         <span
           className={`credential-status-badge${results.signed ? ' credential-status-badge--signed' : ''}`}
@@ -75,6 +125,41 @@ export function CredentialResultsPanel({ results }: CredentialResultsPanelProps)
           <span className="credential-detail">{results.detail}</span>
         )}
       </div>
+
+      {results.vc_id && (
+        <div className="credential-verify">
+          <span className="credential-id-label">Audit verification</span>
+          {verifyLoading && (
+            <span className="credential-verify-status credential-verify-status--loading">
+              Checking…
+            </span>
+          )}
+          {!verifyLoading && verifyError && (
+            <span className="credential-verify-status credential-verify-status--error">
+              {verifyError}
+            </span>
+          )}
+          {!verifyLoading && verify && (
+            <div className="credential-verify-details">
+              <span
+                className={`credential-verify-status ${verifyStatusClass(verify)}`}
+              >
+                {verifyStatusLabel(verify)}
+              </span>
+              <span className="credential-verify-flags">
+                audit_found: {verify.audit_found ? 'yes' : 'no'}
+                {' · '}
+                revoked: {verify.revoked ? 'yes' : 'no'}
+                {' · '}
+                valid: {verify.valid ? 'yes' : 'no'}
+              </span>
+              {verify.detail && (
+                <span className="credential-verify-detail">{verify.detail}</span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {results.vc_id && (
         <div className="credential-id-row">
@@ -114,17 +199,24 @@ export function CredentialResultsPanel({ results }: CredentialResultsPanelProps)
         analysisTimestamp={subject.analysisTimestamp}
       />
 
-      {subject.evidenceUrl && (
-        <div className="credential-evidence">
-          <span className="credential-id-label">Audit evidence</span>
+      {evidenceUrl && (
+        <div className="credential-evidence credential-evidence--prominent">
+          <span className="credential-id-label">Evidence URL</span>
           <a
-            href={subject.evidenceUrl}
+            href={evidenceUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="credential-evidence-link"
           >
-            View audit record
+            {evidenceUrl}
           </a>
+          <button
+            type="button"
+            className="btn btn-secondary credential-copy-btn"
+            onClick={() => void copyText('evidence', evidenceUrl)}
+          >
+            {copiedField === 'evidence' ? 'Copied' : 'Copy link'}
+          </button>
         </div>
       )}
 
@@ -193,9 +285,10 @@ export function CredentialResultsPanel({ results }: CredentialResultsPanelProps)
         >
           {copiedField === 'json' ? 'Copied JSON' : 'Copy JSON'}
         </button>
-        <button type="button" className="btn btn-secondary" onClick={downloadJson}>
+        <button type="button" className="btn btn-primary" onClick={downloadJson}>
           Download JSON
         </button>
+      </div>
       </div>
     </div>
   );

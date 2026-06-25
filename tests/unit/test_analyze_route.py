@@ -34,9 +34,7 @@ def test_analyze_returns_score_breakdown_object(png_bytes):
 
     assert response.status_code == 200
     body = response.json()
-    assert body["score_breakdown"] == {
-        "m": 0.1,
-        "a": 0.2,
-        "v": 0.3,
-        "p": 0.4,
-    }
+    assert body["score_breakdown"]["m"] == 0.1
+    assert body["score_breakdown"]["a"] == 0.2
+    assert body["score_breakdown"]["v"] == 0.3
+    assert body["score_breakdown"]["p"] == 0.4

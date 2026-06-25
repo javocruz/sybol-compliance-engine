@@ -1,12 +1,37 @@
+import json
+import os
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-# Signal weights (sum to 1.0) — calibrated on golden dataset, Jun 2026.
-WM = 0.18
-WA = 0.22
-WV = 0.15
-WP = 0.45
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in ("1", "true", "yes", "on")
+
+
+def _load_signal_weights() -> tuple[float, float, float, float]:
+    """Return (WM, WA, WV, WP). Default: calibrated Jun 2026 weights."""
+    raw_json = os.getenv("SIGNAL_WEIGHTS")
+    if raw_json:
+        data = json.loads(raw_json)
+        return (
+            float(data["m"]),
+            float(data["a"]),
+            float(data["v"]),
+            float(data["p"]),
+        )
+    return (
+        float(os.getenv("SIGNAL_WEIGHT_WM", "0.18")),
+        float(os.getenv("SIGNAL_WEIGHT_WA", "0.22")),
+        float(os.getenv("SIGNAL_WEIGHT_WV", "0.15")),
+        float(os.getenv("SIGNAL_WEIGHT_WP", "0.45")),
+    )
+
+
+WM, WA, WV, WP = _load_signal_weights()
 
 THRESHOLD_NON_COMPLIANT = 0.3
 THRESHOLD_COMPLIANT = 0.7
@@ -19,10 +44,8 @@ EXIF_RICH_SCORE_FLOOR = 0.80
 SYNTHETIC_PROFILE_PROVENANCE_MAX = 0.28
 SYNTHETIC_PROFILE_METADATA_MAX = 0.45
 SYNTHETIC_PROFILE_SCORE_CAP = 0.26
-# PNG/WebP often ship without EXIF — neutral metadata band, not treated as stripped JPEG.
 PNG_NEUTRAL_METADATA_MIN = 0.44
 PNG_NEUTRAL_METADATA_MAX = 0.52
-# Escape synthetic cap when artifact + visual signals look camera-captured.
 CAMERA_LIKELY_ARTIFACT_MIN = 0.76
 CAMERA_LIKELY_VISUAL_MIN = 0.72
 EDITED_PROFILE_METADATA_MIN = 0.45
@@ -33,11 +56,6 @@ EDITED_PROFILE_PROVENANCE_MAX = 0.55
 EDITED_PROFILE_SCORE_MIN = 0.35
 EDITED_PROFILE_SCORE_MAX = 0.65
 
-# Re-saved edited profile: a camera-format JPEG whose EXIF was stripped by an
-# editor (presence baseline only -> m ~0.39), carrying strong edit/generation
-# artifacts and absent from the provenance set. This sits between an authentic
-# camera JPEG (m >= 0.62) and a synthetic PNG (m ~0.35), so it maps to the
-# review band instead of the synthetic non-compliant cap.
 EDITED_RESAVED_METADATA_MIN = 0.36
 EDITED_RESAVED_METADATA_MAX = 0.42
 EDITED_RESAVED_ARTIFACT_MIN = 0.55
@@ -63,7 +81,6 @@ EDITING_SOFTWARE_TAGS = (
 
 REQUIRED_EXIF_FIELDS = ("DateTimeOriginal", "Make", "Model")
 
-# Sub-score weights inside signal extractors
 ARTIFACT_CNN_WEIGHT = 0.50
 ARTIFACT_FFT_WEIGHT = 0.25
 ARTIFACT_NOISE_WEIGHT = 0.25
@@ -77,14 +94,16 @@ METADATA_SOFTWARE_WEIGHT = 0.20
 METADATA_TIMESTAMP_WEIGHT = 0.10
 
 NO_EXIF_CAP = 0.35
-# Missing EXIF on PNG/WebP is normal — not evidence of synthesis (unlike stripped JPEG).
 PNG_WEBP_NO_EXIF_SCORE = 0.55
 
 PHASH_MATCH_THRESHOLD = 10
 AUTHENTIC_REFERENCE_DIR = PROJECT_ROOT / "qa" / "test_cases" / "authentic"
 EMPTY_PROVENANCE_DEFAULT = 0.5
 
-PLATT_ENABLED = False
+PLATT_ENABLED = _env_bool("PLATT_ENABLED", False)
 PLATT_PARAMS_PATH = Path(__file__).resolve().parent / "data" / "platt_params.json"
 
 SUPPORTED_MIME_TYPES = frozenset({"image/jpeg", "image/png", "image/webp"})
+
+# RAG hallucination guard: "regulation" | "article" | "both"
+HALLUCINATION_GUARD_STRICTNESS = os.getenv("HALLUCINATION_GUARD_STRICTNESS", "regulation")

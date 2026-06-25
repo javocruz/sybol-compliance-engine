@@ -1,0 +1,52 @@
+.sybol-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border: none;
+  border-radius: var(--sybol-radius-sm);
+  font-family: var(--font-primary);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sybol-btn:focus-visible {
+  outline: 2px solid var(--sybol-200);
+  outline-offset: 2px;
+}
+
+.sybol-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.sybol-btn--solid {
+  background: var(--sybol-900);
+  color: var(--sybol-200);
+}
+
+.sybol-btn--solid:hover:not(:disabled) {
+  background: var(--sybol-800);
+}
+
+.sybol-btn--secondary {
+  background: var(--color-surface);
+  color: var(--sybol-900);
+  border: 1px solid var(--color-border);
+}
+
+.sybol-btn--secondary:hover:not(:disabled) {
+  background: var(--sybol-neutral-100);
+}
+
+.sybol-btn--ghost {
+  background: transparent;
+  color: var(--sybol-800);
+}
+
+.sybol-btn--ghost:hover:not(:disabled) {
+  background: var(--sybol-50);
+}

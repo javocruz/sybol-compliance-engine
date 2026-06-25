@@ -1,11 +1,14 @@
+import time
+
 from fastapi import APIRouter, Request
 
 from src.api.dependencies import Settings, get_settings, get_sybol_client
+from src.scoring.constants import PLATT_ENABLED
 
 router = APIRouter(tags=["status"])
 
 
-@router.get("/status", summary="Ceremony stack health and readiness")
+@router.get("/status", summary="Stack health and readiness")
 async def system_status(request: Request) -> dict:
     settings: Settings = get_settings()
     sybol = get_sybol_client(settings)
@@ -38,6 +41,8 @@ async def system_status(request: Request) -> dict:
         model_loaded = False
 
     rag_index_loaded = getattr(request.app.state, "index", None) is not None
+    started_at = getattr(request.app.state, "started_at", None)
+    uptime_seconds = round(time.time() - started_at, 1) if started_at else None
 
     return {
         "api": "ok",
@@ -47,4 +52,9 @@ async def system_status(request: Request) -> dict:
         "sybol_configured": sybol.is_configured,
         "model_loaded": model_loaded,
         "public_base_url": settings.public_base_url,
+        "git_commit": getattr(request.app.state, "git_commit", None),
+        "uptime_seconds": uptime_seconds,
+        "platt_enabled": PLATT_ENABLED,
+        "vc_version": getattr(request.app.state, "vc_version", "1.1"),
+        "app_env": settings.app_env,
     }

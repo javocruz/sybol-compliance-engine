@@ -1,8 +1,33 @@
 # Notes for Alex — demo handoff & server experiments
 
-Last updated: 2026-06-25 (Javier). Everything below is on **`main`** (PR #12 merged).
+Last updated: 2026-06-26 (Javier). Post-ceremony roadmap implemented on `main`.
 
-Use this doc to run the stack locally, understand what's shipped, and pick up the EC2 deploy when disk is unblocked.
+Use this doc to run the stack locally, operate the EC2 deploy, and understand what's shipped.
+
+---
+
+## Post-ceremony updates (Jun 26)
+
+### Infrastructure
+- **systemd unit:** `deploy/sybol-api.service` — bind `127.0.0.1:8000`, use Caddy on 443 for HTTPS
+- **Deploy script:** `bash deploy/deploy.sh` on server (git pull, CPU torch, Qdrant, restart)
+- **Monitoring:** `deploy/healthcheck.sh` + optional `SLACK_WEBHOOK_URL`
+- Full runbook: [`deploy/README.md`](deploy/README.md)
+
+### API
+- Rich **`GET /api/status`** — git commit, uptime, chunk count, Platt flag, VC version
+- **`GET /api/verify/{vc_id}`** / **`POST /api/revoke/{vc_id}`** — audit-based verification
+- Rate limits on analyze/query/issue; optional **`API_KEYS`** for write endpoints
+- Model warm-up: `WARMUP_ON_START=true`
+
+### Frontend (Sybol branding)
+- Satoshi font + Sybol palette from marketing site tokens
+- Tabs: Analyze / Query / Issue / **System**
+- Evidence URL prominent on Issue results
+- Build: `cd frontend && npm ci && npm run build && npm test`
+
+### Paper vs code
+- See [`docs/PAPER_CODE_ALIGNMENT.md`](docs/PAPER_CODE_ALIGNMENT.md)
 
 ---
 
@@ -133,116 +158,35 @@ cd frontend && VITE_API_BASE_URL= npm run build
 
 ---
 
-## EC2 server (`54.154.92.29`) — status & deploy plan
-
-Pelayo's VM for IE/Sybol experiments. **IP changed 2026-06-25** after server restart (was `52.210.252.91`).
+## EC2 server (`54.154.92.29`) — deployed
 
 | Item | Status |
 |------|--------|
-| SSH as `javier` | Works — key `~/.ssh/sybol_ie_javier` |
-| SSH as `alex` | Should work once your key is on the box (ask Pelayo) |
-| Docker group | **OK** — `docker ps` works |
-| Disk | **Fixed** — **38 GB** volume, **~23 GB free** (41% used) — ready for torch + models |
-| Sudo / systemd | **Blocked** — `sudo` needs password; use tmux for uvicorn or ask Pelayo for systemd |
-| Qdrant / API on server | **Not deployed yet** — no containers, no repo clone (fresh after restart) |
-| AWS SG port 8000 | **Closed** externally until API runs + Pelayo opens inbound TCP 8000 |
-
-### Deploy sequence (summary)
-
-Full steps were written in the deploy plan; condensed for you:
+| Public URL | **http://54.154.92.29:8000/** |
+| Qdrant | Running (`sybol-qdrant`, 1,773 chunks) |
+| API | uvicorn (migrate to systemd — see `deploy/sybol-api.service`) |
+| HTTPS | Configure Caddy — `deploy/Caddyfile`, set `PUBLIC_BASE_URL=https://…` |
+| Elastic IP | Ask Pelayo — attach so IP survives reboot |
 
 ```bash
-# SSH
 ssh -i ~/.ssh/sybol_ie_javier javier@54.154.92.29
-
-# Clone
-git clone https://github.com/javocruz/sybol-compliance-engine.git
-cd sybol-compliance-engine && git checkout main
-
-# Qdrant (localhost only — do NOT bind 6333 to 0.0.0.0)
-docker run -d --name sybol-qdrant --restart unless-stopped \
-  -p 127.0.0.1:6333:6333 -v sybol_qdrant_data:/qdrant/storage qdrant/qdrant
-
-# Python — IMPORTANT: CPU-only torch on this host (no GPU)
-python3 -m venv .venv && source .venv/bin/activate
-pip install --upgrade pip
-pip install torch --index-url https://download.pytorch.org/whl/cpu
-pip install poetry
-poetry export -f requirements.txt --without-hashes --only main -o /tmp/req.txt
-grep -v '^torch==' /tmp/req.txt > /tmp/req-notorch.txt   # torch already installed
-pip install -r /tmp/req-notorch.txt
-
-# Secrets — copy src/.env from a teammate (never commit); chmod 600
-# Set QDRANT_URL=http://127.0.0.1:6333
-# Set PUBLIC_BASE_URL=http://54.154.92.29:8000  (public evidenceUrl for VCs)
-
-# Ingest + API
-export PYTHONPATH=src HF_HOME=$HOME/.cache/huggingface
-python3 -m scripts.ingest
-# GET /api/audit/{id} serves audit JSON publicly when PUBLIC_BASE_URL is set
-# Prefer systemd (needs sudo); fallback: tmux + uvicorn on 0.0.0.0:8000
-
-# Frontend: build on your laptop, rsync dist/
-# cd frontend && VITE_API_BASE_URL= npm run build
-# rsync -avz -e "ssh -i ~/.ssh/sybol_ie_javier" dist/ javier@54.154.92.29:~/sybol-compliance-engine/frontend/dist/
+cd ~/sybol-compliance-engine && bash deploy/deploy.sh
 ```
-
-**Public demo URL (once up):** `http://54.154.92.29:8000/` (API + bundled UI).
-
-**Rollback:** `docker stop sybol-qdrant`; stop uvicorn/systemd; `rm -rf ~/sybol-compliance-engine`.
 
 ---
 
-## What is left (post-demo)
+## What is left (optional hardening)
 
-1. **Server deploy** — disk is ready; clone repo → Qdrant → venv → ingest → uvicorn → rsync frontend → open SG :8000.
-2. **Public evidence URL** — `evidenceUrl` still points at localhost Qdrant unless we add a public audit route.
-3. **Docs/CI cleanup** — update `PROJECT_STATUS.md`, export RAG metrics to `qa/rag_eval/results.json`.
+1. **Elastic IP + HTTPS domain** — `compliance.sybol.id` via Caddy
+2. **systemd** — replace tmux (`sudo cp deploy/sybol-api.service /etc/systemd/system/`)
+3. **Export RAG metrics** — `python qa/rag_eval/export_metrics.py` after live run
 
 ---
 
 ## Known cosmetic limits (safe to demo)
 
 - EU AI Act **recital** chunks have no article number — UI shows regulation name only.
-- `evidenceUrl` in VCs uses `QDRANT_URL` (localhost on laptop) — not clickable from wallet for external viewers.
-- AI images often show **exactly 0.26** — synthetic-profile **cap**, not a bug; raw scores differ slightly below the cap.
-- **Platt disabled** — document as optional future work, not a missing switch.
-
----
-
-## Development backlog (post-demo)
-
-### Deployment & infra
-- Complete EC2 deploy on `54.154.92.29` (disk OK; Qdrant + ingest + uvicorn + frontend dist).
-- Open **inbound TCP 8000** on AWS security group for audience URL.
-- Railway: Dockerfile is API-only; add frontend build stage or separate static deploy.
-- Public `evidence_url` (not raw Qdrant localhost).
-- Secrets off plaintext `src/.env` in prod.
-
-### Sybol / credentials
-- Token caching (avoid Cognito login every issue).
-- VC verify + revocation flow.
-- VC Data Model **2.0** migration (we emit **1.1** today).
-
-### RAG (TC-005)
-- Record formal precision/recall/hallucination numbers (harness ready; Mistral 429 on batch runs).
-- Ollama path: `llm_provider=ollama` — needs local `ollama serve` + model pull.
-- AI Act article-level tagging for recital chunks.
-
-### Scoring
-- Milder edited images (EXIF retained) for broader TC-003.
-- Larger hold-out set before enabling Platt (`PLATT_ENABLED` stays `False` for now).
-
-### Frontend
-- Browser QA (errors, loading, mobile).
-- Optional vitest for API client + result components.
-
-### Engineering
-- GitHub Actions: pytest + `npm run build` on PRs.
-- Do not commit `deploy/` SSH key material — keep keys outside the repo.
-
----
-
-## Message template for Pelayo (SG port 8000)
-
-> Hola Pelayo — gracias por el reinicio y el disco ampliado. La nueva IP es 54.154.92.29 y SSH funciona. ¿Podéis abrir el puerto **8000** en el security group para la URL pública de la demo? Gracias.
+- **`evidenceUrl`** is public when `PUBLIC_BASE_URL` is set (EC2 demo OK).
+- AI images often show **exactly 0.26** — synthetic-profile **cap**, not a bug.
+- **Platt disabled by default** — `PLATT_ENABLED` env toggle; see paper alignment doc.
+- **VC 1.1** — not 2.0; wallet compatibility first.

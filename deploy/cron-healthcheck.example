@@ -1,0 +1,16 @@
+# Sybol API healthcheck — install on EC2 as user javier
+#
+# 1. Make script executable:
+#    chmod +x ~/sybol-compliance-engine/deploy/healthcheck.sh
+#
+# 2. Optional: add SLACK_WEBHOOK_URL to ~/sybol-compliance-engine/src/.env
+#    healthcheck.sh reads it when alerting on failure.
+#
+# 3. Install crontab (crontab -e):
+#
+# Every 5 minutes — probe API + Qdrant; alert Slack on failure
+*/5 * * * * HEALTHCHECK_BASE_URL=http://127.0.0.1:8000 /home/javier/sybol-compliance-engine/deploy/healthcheck.sh >> /home/javier/sybol-healthcheck.log 2>&1
+
+# Verify cron is running:
+# grep CRON /var/log/syslog | tail
+# tail -f /home/javier/sybol-healthcheck.log

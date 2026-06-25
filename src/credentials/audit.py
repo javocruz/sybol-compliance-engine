@@ -86,3 +86,24 @@ def read_audit_record(
         return None
     payload = points[0].payload
     return dict(payload) if payload else None
+
+
+def revoke_audit_record(
+    point_id: str,
+    client: QdrantClient,
+    settings: Settings,
+) -> bool:
+    """Mark an audit record as revoked. Returns False if record not found."""
+    collection = settings.qdrant_audit_collection
+    record = read_audit_record(point_id, client, settings)
+    if not record:
+        return False
+    record["revoked"] = True
+    record["revokedAt"] = (
+        datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    )
+    client.upsert(
+        collection_name=collection,
+        points=[PointStruct(id=point_id, vector=[0.0], payload=record)],
+    )
+    return True

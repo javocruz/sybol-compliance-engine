@@ -187,6 +187,11 @@
 .query-tab-answer {
   font-size: 0.9375rem;
   line-height: 1.6;
+  background: var(--sybol-yellow-100);
+  border: 1px solid var(--sybol-yellow-200);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.125rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .query-tab-answer p {

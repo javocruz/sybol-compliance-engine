@@ -124,7 +124,12 @@ def map_compliance_status(score: float) -> ComplianceStatus:
     return ComplianceStatus.COMPLIANT
 
 
-def build_result(media_hash: str, breakdown: SignalBreakdown) -> ScoringResult:
+def build_result(
+    media_hash: str,
+    breakdown: SignalBreakdown,
+    signal_reasons=None,
+    provenance_distance: int | None = None,
+) -> ScoringResult:
     authenticity_score = compute_authenticity_score(breakdown)
     try:
         model_version = get_deepfake_model().version
@@ -137,4 +142,6 @@ def build_result(media_hash: str, breakdown: SignalBreakdown) -> ScoringResult:
         compliance_status=map_compliance_status(authenticity_score),
         media_hash=media_hash,
         model_version=model_version,
+        signal_reasons=signal_reasons,
+        provenance_distance=provenance_distance,
     )

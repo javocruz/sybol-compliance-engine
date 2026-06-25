@@ -5,6 +5,13 @@ export interface ScoreBreakdown {
   a: number;
   v: number;
   p: number;
+  reasons?: {
+    m: string;
+    a: string;
+    v: string;
+    p: string;
+  } | null;
+  provenance_distance?: number | null;
 }
 
 export interface AnalyzeResponse {
@@ -19,6 +26,21 @@ export interface AnalyzeResponse {
 
 export interface HealthResponse {
   status: string;
+}
+
+export interface SystemStatusResponse {
+  api: string;
+  qdrant: string;
+  rag_index_loaded: boolean;
+  regulations_chunks: number | null;
+  sybol_configured: boolean;
+  model_loaded: boolean;
+  public_base_url: string | null;
+  git_commit?: string | null;
+  uptime_seconds?: number | null;
+  platt_enabled?: boolean;
+  vc_version?: string;
+  app_env?: string;
 }
 
 export type LlmProvider = 'mistral' | 'ollama';
@@ -94,4 +116,13 @@ export interface IssueResponse {
   signed: boolean;
   vc_payload: VcPayload | null;
   signed_vc: SignedVc | null;
+  evidence_url?: string | null;
+}
+
+export interface VerifyResponse {
+  vc_id: string;
+  valid: boolean;
+  revoked: boolean;
+  audit_found: boolean;
+  detail?: string | null;
 }

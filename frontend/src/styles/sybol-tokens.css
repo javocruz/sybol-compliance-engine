@@ -1,0 +1,54 @@
+:root {
+  --sybol-900: #004751;
+  --sybol-800: #007d72;
+  --sybol-700: #009e8e;
+  --sybol-200: #aff8b9;
+  --sybol-100: #48e296;
+  --sybol-50: #e8fff0;
+  --sybol-yellow-100: #fef9c3;
+  --sybol-yellow-200: #fef08a;
+  --sybol-neutral-50: #f8fafc;
+  --sybol-neutral-100: #f1f5f9;
+  --sybol-neutral-500: #64748b;
+  --sybol-neutral-800: #1e293b;
+  --sybol-radius: 1rem;
+  --sybol-radius-sm: 0.5rem;
+  --sybol-shadow: 0 25px 50px -12px rgb(0 71 81 / 0.12);
+  --sybol-shadow-sm: 0 4px 12px rgb(0 71 81 / 0.08);
+  --font-primary: 'Satoshi', system-ui, -apple-system, sans-serif;
+
+  /* App semantic tokens */
+  --color-header-bg: var(--sybol-900);
+  --color-header-text: #ffffff;
+  --color-body-bg: var(--sybol-neutral-50);
+  --color-surface: #ffffff;
+  --color-surface-accent: var(--sybol-yellow-100);
+  --color-border: #e2e8f0;
+  --color-text: var(--sybol-900);
+  --color-text-muted: var(--sybol-neutral-500);
+  --color-accent: var(--sybol-800);
+  --color-accent-hover: var(--sybol-900);
+  --color-accent-text: var(--sybol-200);
+  --color-accent-light: var(--sybol-50);
+  --color-compliant: #16a34a;
+  --color-review: #d97706;
+  --color-non-compliant: #dc2626;
+  --color-error-bg: #fef2f2;
+  --color-error-border: #fecaca;
+  --color-error-text: #991b1b;
+  --font-family: var(--font-primary);
+  --radius: var(--sybol-radius-sm);
+  --radius-lg: var(--sybol-radius);
+  --shadow: var(--sybol-shadow-sm);
+  --shadow-lg: var(--sybol-shadow);
+  --max-width: 1200px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

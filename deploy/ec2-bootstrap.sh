@@ -32,8 +32,8 @@ rm -rf .venv
 uv venv .venv
 # shellcheck disable=SC1091
 source .venv/bin/activate
-echo "Installing CPU torch..."
-uv pip install torch --index-url https://download.pytorch.org/whl/cpu
+echo "Installing CPU torch (pinned)..."
+uv pip install -r deploy/requirements-cpu.txt
 uv pip install poetry poetry-plugin-export
 poetry export -f requirements.txt --without-hashes --only main -o /tmp/req.txt
 grep -v '^torch==' /tmp/req.txt > /tmp/req-notorch.txt || true
@@ -59,8 +59,13 @@ if [[ "$NEED_INGEST" -eq 1 ]]; then
 fi
 
 echo ""
+echo "=== systemd (recommended) ==="
+echo "  sudo cp deploy/sybol-api.service /etc/systemd/system/"
+echo "  # Edit User/WorkingDirectory paths if not javier"
+echo "  sudo systemctl daemon-reload && sudo systemctl enable --now sybol-api"
+echo ""
 echo "=== Bootstrap complete ==="
-echo "Start API in tmux:"
+echo "Or start API in tmux (fallback):"
 echo "  tmux new -s sybol-api"
 echo "  cd $ROOT && source .venv/bin/activate"
 echo "  set -a && source src/.env && set +a"

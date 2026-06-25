@@ -39,7 +39,14 @@
 
 .score-breakdown-bar-fill {
   height: 100%;
-  background: var(--color-accent);
+  background: linear-gradient(90deg, var(--sybol-800), var(--sybol-100));
   border-radius: 999px;
   transition: width 0.4s ease;
+}
+
+.score-breakdown-reason {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  line-height: 1.4;
 }

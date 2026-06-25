@@ -19,7 +19,7 @@
 
 .authenticity-gauge-fill {
   fill: none;
-  stroke: var(--color-accent);
+  stroke: url(#gaugeGradient);
   stroke-width: 8;
   stroke-linecap: round;
   transition: stroke-dashoffset 0.4s ease;

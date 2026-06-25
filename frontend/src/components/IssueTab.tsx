@@ -69,7 +69,7 @@ export function IssueTab() {
   return (
     <div className="issue-tab">
       <div className="issue-tab-grid">
-        <section className="issue-tab-upload card">
+        <section className="issue-tab-upload card card--accent">
           <h2 className="issue-tab-heading">Issue credential</h2>
           <p className="issue-tab-intro">
             Upload media to score authenticity, query applicable regulations, write an

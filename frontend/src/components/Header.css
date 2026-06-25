@@ -14,11 +14,22 @@
   flex-wrap: wrap;
 }
 
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header-logo {
+  border-radius: 0.375rem;
+}
+
 .header-title {
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 1.125rem;
+  font-weight: 700;
   letter-spacing: -0.01em;
+  color: var(--sybol-200);
 }
 
 .header-sublabel {
@@ -33,6 +44,7 @@
   gap: 0.5rem;
   font-size: 0.875rem;
   color: #cbd5e1;
+  flex-wrap: wrap;
 }
 
 .header-status-dot {
@@ -43,7 +55,11 @@
 }
 
 .header-status--connected .header-status-dot {
-  background: var(--color-compliant);
+  background: var(--sybol-100);
+}
+
+.header-status--degraded .header-status-dot {
+  background: var(--color-review);
 }
 
 .header-status--unreachable .header-status-dot {
@@ -52,4 +68,12 @@
 
 .header-status--loading .header-status-dot {
   background: var(--color-review);
+}
+
+.header-status-meta {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  padding-left: 0.25rem;
+  border-left: 1px solid #475569;
+  margin-left: 0.25rem;
 }

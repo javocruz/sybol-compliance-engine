@@ -4,7 +4,30 @@ Owner: Saba Zarandia (QA Lead). Per project doc §3.5 — dated results, issue r
 
 ---
 
-## 2026-06-25 — TC-003 edited images integrated (`feat/local-ready`)
+## 2026-06-26 — TC-005 RAG metrics PASSED + EC2 deploy
+
+**Environment:** Live Qdrant (1,773 chunks), `MISTRAL_API_KEY` set.
+
+### TC-005 result: **PASSED**
+
+`tests/integration/test_rag_metrics.py` — 3/3 tests passed (precision ≥80%, recall ≥75%, hallucination ≤5%).
+
+Export formal numbers:
+
+```bash
+PYTHONPATH=src python qa/rag_eval/export_metrics.py
+# writes qa/rag_eval/results.json
+```
+
+### EC2 smoke (54.154.92.29:8000)
+
+- `/health`, `/api/status` OK
+- `/api/analyze` authentic ~0.83
+- `/api/query` EU AI Act citation
+- `/api/issue` signed VC + public `evidenceUrl` → `/api/audit/{uuid}`
+
+---
+
 
 **Branch:** `feat/local-ready` (off `main`).
 **Dataset:** Youssef delivered 10 edited images, now in `qa/test_cases/golden/edited/`

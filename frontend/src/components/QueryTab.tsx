@@ -97,7 +97,7 @@ export function QueryTab() {
   return (
     <div className="query-tab">
       <div className="query-tab-grid">
-        <section className="query-tab-input card">
+        <section className="query-tab-input card card--accent">
           <h2 className="query-tab-heading">Ask a regulation question</h2>
           <p className="query-tab-intro">
             Query EU and Spanish regulations via RAG. Answers are synthesized from

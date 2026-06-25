@@ -1,0 +1,19 @@
+# Reverse proxy for HTTPS. Replace compliance.sybol.id with your domain.
+# Install: sudo apt install caddy
+# Copy: sudo cp deploy/Caddyfile /etc/caddy/Caddyfile && sudo systemctl reload caddy
+
+compliance.sybol.id {
+	encode gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+	reverse_proxy 127.0.0.1:8000
+}
+
+# Fallback: TLS on IP-only demo (requires Caddy automatic HTTPS or self-signed)
+# :443 {
+# 	reverse_proxy 127.0.0.1:8000
+# }

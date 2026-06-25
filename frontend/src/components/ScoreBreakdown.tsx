@@ -16,14 +16,16 @@ export function ScoreBreakdownPanel({ breakdown }: ScoreBreakdownProps) {
           const percent = Math.round(value * 100);
           const { label, description } = SIGNAL_LABELS[key];
 
+          const reason = breakdown.reasons?.[key];
           return (
             <li key={key} className="score-breakdown-item">
               <div className="score-breakdown-header">
-                <span className="score-breakdown-label" title={description}>
+                <span className="score-breakdown-label" title={reason || description}>
                   {label}
                 </span>
                 <span className="score-breakdown-value">{percent}%</span>
               </div>
+              {reason && <p className="score-breakdown-reason">{reason}</p>}
               <div className="score-breakdown-bar" role="presentation">
                 <div
                   className="score-breakdown-bar-fill"

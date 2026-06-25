@@ -1,0 +1,22 @@
+[Unit]
+Description=Sybol Compliance Engine API
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=javier
+Group=javier
+WorkingDirectory=/home/javier/sybol-compliance-engine
+EnvironmentFile=/home/javier/sybol-compliance-engine/src/.env
+Environment=PYTHONPATH=src
+Environment=HF_HOME=/home/javier/.cache/huggingface
+Environment=PATH=/home/javier/sybol-compliance-engine/.venv/bin:/home/javier/.local/bin:/usr/bin:/bin
+ExecStart=/home/javier/sybol-compliance-engine/.venv/bin/python -m uvicorn src.api.main:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

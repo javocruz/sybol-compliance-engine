@@ -1,14 +1,14 @@
-# EC2 Ceremony Deploy — `54.154.92.29`
+# EC2 Deploy Runbook
 
-Public demo URL (after SG port 8000 is open): **http://54.154.92.29:8000/**
+Public demo URL: **http://54.154.92.29:8000/** (or HTTPS via Caddy — see below)
 
-## Pelayo — security group
+## Pelayo — infrastructure checklist
 
-Ask Pelayo to open **inbound TCP 8000** on the EC2 security group:
+1. **Elastic IP** — attach to instance so IP survives reboot
+2. **Security group** — inbound TCP 8000 (HTTP demo) and 443 (HTTPS when Caddy enabled)
+3. **Optional DNS** — `compliance.sybol.id` → Elastic IP
 
-> Hola Pelayo — la nueva IP es **54.154.92.29**. SSH OK y disco ampliado, gracias. Para la ceremonia del AI Lab necesitamos el puerto **8000** abierto en el security group. ¿Lo podéis habilitar?
-
-## Laptop → server (first time)
+## First-time bootstrap
 
 ```bash
 SSH_KEY=~/.ssh/sybol_ie_javier
@@ -17,23 +17,56 @@ HOST=javier@54.154.92.29
 ssh -i $SSH_KEY $HOST 'git clone https://github.com/javocruz/sybol-compliance-engine.git || (cd sybol-compliance-engine && git pull)'
 scp -i $SSH_KEY src/.env $HOST:~/sybol-compliance-engine/src/.env
 ssh -i $SSH_KEY $HOST 'chmod 600 ~/sybol-compliance-engine/src/.env'
+ssh -i $SSH_KEY $HOST 'cd ~/sybol-compliance-engine && bash deploy/ec2-bootstrap.sh'
 ```
 
-Ensure server `src/.env` includes:
+Copy [`deploy/ec2.env.example`](ec2.env.example) to `src/.env` and set secrets. Never commit `src/.env` or `deploy/ssh-keys-for-pelayo.txt`.
 
-```env
-QDRANT_URL=http://127.0.0.1:6333
-PUBLIC_BASE_URL=http://54.154.92.29:8000
-```
+## systemd (recommended over tmux)
 
-## Bootstrap on server
+Requires sudo on the EC2 instance. If sudo is blocked, ask Pelayo or use tmux until access is granted.
 
 ```bash
-ssh -i ~/.ssh/sybol_ie_javier javier@54.154.92.29
-cd ~/sybol-compliance-engine && git pull && bash deploy/ec2-bootstrap.sh
+sudo cp deploy/sybol-api.service /etc/systemd/system/
+# Edit User/WorkingDirectory if paths differ (default: javier, ~/sybol-compliance-engine)
+sudo systemctl daemon-reload
+sudo systemctl enable --now sybol-api
+sudo systemctl status sybol-api
+sudo journalctl -u sybol-api -f
 ```
 
-## Frontend (laptop)
+Retire tmux after systemd is live:
+
+```bash
+tmux kill-session -t sybol-api 2>/dev/null || true
+```
+
+Reboot test: `sudo reboot` — API should auto-start; Qdrant container restarts via Docker.
+
+The service binds to `127.0.0.1:8000`. Use Caddy for public HTTPS on 443.
+
+## HTTPS with Caddy
+
+```bash
+sudo apt install -y caddy
+sudo cp deploy/Caddyfile /etc/caddy/Caddyfile
+# Set PUBLIC_BASE_URL=https://compliance.sybol.id in src/.env
+sudo systemctl reload caddy
+```
+
+Security headers (HSTS, X-Content-Type-Options, etc.) are configured in [`deploy/Caddyfile`](Caddyfile).
+
+## Deploy updates
+
+On server:
+
+```bash
+cd ~/sybol-compliance-engine && bash deploy/deploy.sh
+```
+
+Flags: `--skip-ingest`, `--skip-frontend`
+
+Frontend (from laptop):
 
 ```bash
 cd frontend && npm ci && VITE_API_BASE_URL= npm run build
@@ -41,16 +74,74 @@ rsync -avz -e "ssh -i ~/.ssh/sybol_ie_javier" dist/ \
   javier@54.154.92.29:~/sybol-compliance-engine/frontend/dist/
 ```
 
-## Run API (tmux on server)
+## CPU-only PyTorch
+
+[`deploy/requirements-cpu.txt`](requirements-cpu.txt) pins CPU torch before Poetry export. Bootstrap and deploy scripts use this to avoid CUDA wheels on EC2.
+
+## Qdrant persistence
+
+Named volume `sybol_qdrant_data` survives container restarts. Do not `docker rm -v sybol-qdrant` unless re-ingesting.
+
+## Secrets management
+
+### Short term
+
+- `chmod 600 src/.env` on the server (never commit `src/.env`)
+- API keys for write endpoints: set `API_KEYS=<comma-separated-keys>` in `src/.env`
+- Demo operators pass `X-API-Key` header on `/api/issue` and `/api/revoke` only (`/api/analyze` and `/api/query` stay open)
+- Frontend build: set `VITE_API_KEY` when issuing from the UI against a keyed server
 
 ```bash
-tmux new -s sybol-api
-cd ~/sybol-compliance-engine && source .venv/bin/activate
-set -a && source src/.env && set +a
-export PYTHONPATH=src HF_HOME=$HOME/.cache/huggingface
-python3 -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000
-# Ctrl+B, D to detach
+openssl rand -hex 32   # generate a demo key
+curl -X POST http://54.154.92.29:8000/api/issue \
+  -H "X-API-Key: $KEY" -F "file=@qa/test_cases/golden/authentic/ar20.jpg"
 ```
+
+### Medium term — AWS SSM Parameter Store
+
+Store production secrets under `/sybol/compliance/*` (one parameter per env var):
+
+| Parameter path | Example value |
+|----------------|---------------|
+| `/sybol/compliance/MISTRAL_API_KEY` | `sk-…` |
+| `/sybol/compliance/SYBOL_ACCESS_TOKEN` | `…` |
+| `/sybol/compliance/API_KEYS` | `hex-key-1,hex-key-2` |
+| `/sybol/compliance/PUBLIC_BASE_URL` | `https://compliance.sybol.id` |
+
+IAM: instance role needs `ssm:GetParametersByPath` on `arn:aws:ssm:REGION:ACCOUNT:parameter/sybol/compliance/*`.
+
+On deploy or boot, pull into `src/.env`:
+
+```bash
+aws ssm get-parameters-by-path --path /sybol/compliance --with-decryption \
+  --query 'Parameters[*].[Name,Value]' --output text | while read -r name value; do
+  key=$(basename "$name")
+  echo "$key=$value" >> src/.env
+done
+chmod 600 src/.env
+```
+
+Optional: extend `deploy/deploy.sh` to run this block when `USE_SSM_SECRETS=1` is set. Rotate keys in SSM and redeploy — no secrets in git or plaintext on laptops.
+
+## Monitoring
+
+```bash
+chmod +x deploy/healthcheck.sh
+```
+
+See [`deploy/cron-healthcheck.example`](cron-healthcheck.example) for a crontab line (every 5 minutes).
+
+Set `SLACK_WEBHOOK_URL` in `src/.env` for failure alerts.
+
+## Audit trail immutability
+
+Audit records live in Qdrant `media_audit` collection (metadata only, no image bytes). For production:
+
+- Restrict Qdrant to localhost (already `127.0.0.1:6333`)
+- Use Qdrant API key + network isolation
+- For stronger guarantees, mirror audit writes to S3 with Object Lock (write-once)
+
+Revocation updates the audit payload `revoked` flag — it does not delete history.
 
 ## Smoke tests
 
@@ -59,26 +150,22 @@ BASE=http://54.154.92.29:8000
 curl -s $BASE/health
 curl -s $BASE/api/status | python3 -m json.tool
 curl -s -X POST $BASE/api/analyze -F "file=@qa/test_cases/golden/authentic/ar20.jpg" | head -c 300
-curl -s -X POST $BASE/api/query \
-  -H 'Content-Type: application/json' \
-  -d '{"question":"What are AI-generated media disclosure rules?"}' | head -c 400
 ```
-
-After `/api/issue`, confirm `evidenceUrl` is `http://54.154.92.29:8000/api/audit/<uuid>` and that URL returns JSON.
-
-## Ceremony demo flow (~5 min)
-
-1. `/api/status` — stack green
-2. Analyze — AI image (0.26) vs authentic (~0.83)
-3. Query — EU AI Act citation
-4. Issue — signed VC
-5. Sybol wallet — verified credential + clickable evidence link
 
 ## Rollback
 
 ```bash
-tmux kill-session -t sybol-api
-docker stop sybol-qdrant
+git checkout <previous-commit>
+bash deploy/deploy.sh --skip-ingest
 ```
 
-Do **not** commit `deploy/ssh-keys-for-pelayo.txt` or `src/.env`.
+Or: `sudo systemctl stop sybol-api`
+
+## Ceremony demo flow
+
+1. `/api/status` — stack green
+2. Analyze — AI image vs authentic
+3. Query — EU AI Act citation
+4. Issue — signed VC + evidence URL
+5. Verify — `GET /api/verify/{vc_id}` (audit trail; optional revoke + re-verify)
+6. Sybol wallet — verify credential

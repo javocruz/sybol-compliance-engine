@@ -16,9 +16,18 @@ class SignalBreakdown(BaseModel):
     p: float = Field(ge=0.0, le=1.0)
 
 
+class SignalReasons(BaseModel):
+    m: str = ""
+    a: str = ""
+    v: str = ""
+    p: str = ""
+
+
 class ScoringResult(BaseModel):
     authenticity_score: float = Field(ge=0.0, le=1.0)
     score_breakdown: SignalBreakdown
     compliance_status: ComplianceStatus
     media_hash: str
     model_version: str
+    signal_reasons: SignalReasons | None = None
+    provenance_distance: int | None = None

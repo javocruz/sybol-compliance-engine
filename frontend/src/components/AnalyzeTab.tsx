@@ -59,7 +59,7 @@ export function AnalyzeTab() {
   return (
     <div className="analyze-tab">
       <div className="analyze-tab-grid">
-        <section className="analyze-tab-upload card">
+        <section className="analyze-tab-upload card card--accent">
           <h2 className="analyze-tab-heading">Upload Image</h2>
           <ImageUploader onFileSelect={handleFileSelect} disabled={loading} />
           {previewUrl && file && (
