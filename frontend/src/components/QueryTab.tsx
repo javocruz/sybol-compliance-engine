@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
-import { queryRegulations, ApiError } from '../api/client';
-import type { LlmProvider, QueryResponse } from '../types/api';
+import { useCallback, useEffect, useState } from 'react';
+import { fetchSystemStatus, queryRegulations, ApiError } from '../api/client';
+import type { LlmProvider, QueryResponse, SystemStatusResponse } from '../types/api';
 import { LoadingPanel } from './LoadingPanel';
 import { ErrorAlert } from './ErrorAlert';
 import { RegulationRefs } from './RegulationRefs';
+import { Banner } from './ui/Banner';
 import './QueryTab.css';
 
 const EXAMPLE_QUESTIONS = [
@@ -28,9 +29,13 @@ function loadStoredProvider(): LlmProvider {
 export function QueryTab() {
   const [question, setQuestion] = useState('');
   const [llmProvider, setLlmProvider] = useState<LlmProvider>(loadStoredProvider);
+  const [serverStatus, setServerStatus] = useState<SystemStatusResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<QueryResponse | null>(null);
+
+  const ollamaAvailable = serverStatus?.ollama_available === true;
+  const ollamaModel = serverStatus?.ollama_model ?? 'qwen2.5:7b-instruct';
 
   useEffect(() => {
     try {
@@ -40,8 +45,29 @@ export function QueryTab() {
     }
   }, [llmProvider]);
 
+  useEffect(() => {
+    void fetchSystemStatus()
+      .then((data) => {
+        setServerStatus(data);
+        const preferred = loadStoredProvider();
+        if (preferred === 'ollama' && !data.ollama_available && data.mistral_configured) {
+          setLlmProvider('mistral');
+        } else if (
+          preferred === 'mistral' &&
+          !data.mistral_configured &&
+          data.ollama_available
+        ) {
+          setLlmProvider('ollama');
+        }
+      })
+      .catch(() => setServerStatus(null));
+  }, []);
+
   const trimmed = question.trim();
-  const canSubmit = trimmed.length >= MIN_QUESTION_LENGTH && !loading;
+  const canSubmit =
+    trimmed.length >= MIN_QUESTION_LENGTH &&
+    !loading &&
+    !(llmProvider === 'ollama' && serverStatus && !ollamaAvailable);
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -53,24 +79,7 @@ export function QueryTab() {
       setResults(response);
     } catch (err) {
       if (err instanceof ApiError) {
-        if (err.status === 503) {
-          const base =
-            'The regulation index is not available. Ensure Qdrant is running and the regulations have been ingested (see project README).';
-          setError(
-            llmProvider === 'ollama'
-              ? `${base} If using Ollama, also ensure it is running (\`ollama serve\`) and the model is pulled (\`ollama pull qwen2.5:7b-instruct\`).`
-              : base,
-          );
-        } else if (
-          llmProvider === 'ollama' &&
-          err.message.toLowerCase().includes('ollama')
-        ) {
-          setError(
-            `${err.message} Ensure Ollama is running: \`ollama serve\` and model is pulled: \`ollama pull qwen2.5:7b-instruct\`.`,
-          );
-        } else {
-          setError(err.message);
-        }
+        setError(err.message);
       } else if (err instanceof TypeError) {
         setError('Network error — could not reach the API. Is the server running?');
       } else {
@@ -94,6 +103,8 @@ export function QueryTab() {
     setResults(null);
   };
 
+  const selectMistral = useCallback(() => setLlmProvider('mistral'), []);
+
   return (
     <div className="query-tab">
       <div className="query-tab-grid">
@@ -103,18 +114,39 @@ export function QueryTab() {
             Query EU and Spanish regulations via RAG with cited articles from ingested legal texts.
           </p>
 
+          {llmProvider === 'ollama' && serverStatus && !ollamaAvailable && (
+            <Banner title="Local Ollama is not available on this server">
+              {serverStatus.ollama_detail ??
+                'Ollama is not running on the API host. Use Mistral (cloud) for the public demo, or run the API locally with `ollama serve`.'}{' '}
+              {serverStatus.mistral_configured && (
+                <button type="button" className="query-tab-switch-llm" onClick={selectMistral}>
+                  Switch to Mistral
+                </button>
+              )}
+            </Banner>
+          )}
+
           <fieldset className="query-tab-llm-toggle">
             <legend className="query-tab-label">Synthesis model</legend>
+            {serverStatus && !ollamaAvailable && (
+              <p className="query-tab-ollama-note">
+                Local Ollama is for dev machines only — use Mistral on this server.
+              </p>
+            )}
             <div className="query-tab-llm-options">
               <button
                 type="button"
                 className={`query-tab-llm-option${llmProvider === 'mistral' ? ' query-tab-llm-option--active' : ''}`}
                 onClick={() => setLlmProvider('mistral')}
-                disabled={loading}
+                disabled={loading || serverStatus?.mistral_configured === false}
                 aria-pressed={llmProvider === 'mistral'}
               >
                 <span className="query-tab-llm-option-label">Mistral (cloud)</span>
-                <span className="query-tab-llm-option-hint">Requires MISTRAL_API_KEY</span>
+                <span className="query-tab-llm-option-hint">
+                  {serverStatus?.mistral_configured === false
+                    ? 'Not configured on server'
+                    : 'Requires MISTRAL_API_KEY'}
+                </span>
               </button>
               <button
                 type="button"
@@ -124,7 +156,10 @@ export function QueryTab() {
                 aria-pressed={llmProvider === 'ollama'}
               >
                 <span className="query-tab-llm-option-label">Qwen local (Ollama)</span>
-                <span className="query-tab-llm-option-hint">qwen2.5:7b-instruct</span>
+                <span className="query-tab-llm-option-hint">
+                  {ollamaModel}
+                  {serverStatus && !ollamaAvailable ? ' — unavailable' : ''}
+                </span>
               </button>
             </div>
           </fieldset>

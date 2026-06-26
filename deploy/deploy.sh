@@ -66,7 +66,8 @@ echo "=== restart API ==="
 if systemctl is-active --quiet sybol-api 2>/dev/null; then
   sudo systemctl restart sybol-api
 else
-  echo "sybol-api.service not installed — use: sudo cp deploy/sybol-api.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable --now sybol-api"
+  echo "sybol-api.service not active — starting via tmux"
+  bash deploy/start-api-tmux.sh
 fi
 
 echo "=== smoke ==="

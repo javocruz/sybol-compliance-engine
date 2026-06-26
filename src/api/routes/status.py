@@ -1,3 +1,4 @@
+import os
 import time
 
 from fastapi import APIRouter, Request
@@ -44,6 +45,10 @@ async def system_status(request: Request) -> dict:
     started_at = getattr(request.app.state, "started_at", None)
     uptime_seconds = round(time.time() - started_at, 1) if started_at else None
 
+    from src.rag.llm import check_ollama_available, get_ollama_base_url, get_ollama_model
+
+    ollama_ok, ollama_detail = check_ollama_available()
+
     return {
         "api": "ok",
         "qdrant": qdrant_status,
@@ -57,4 +62,9 @@ async def system_status(request: Request) -> dict:
         "platt_enabled": PLATT_ENABLED,
         "vc_version": getattr(request.app.state, "vc_version", "1.1"),
         "app_env": settings.app_env,
+        "ollama_available": ollama_ok,
+        "ollama_model": get_ollama_model(),
+        "ollama_base_url": get_ollama_base_url(),
+        "ollama_detail": ollama_detail,
+        "mistral_configured": bool(os.environ.get("MISTRAL_API_KEY")),
     }

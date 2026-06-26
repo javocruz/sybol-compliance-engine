@@ -7,6 +7,18 @@
   flex-wrap: wrap;
 }
 
+.status-tab__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  margin-top: 1rem;
+}
+
+.status-tab__link {
+  text-decoration: none;
+  font-size: var(--text-body-sm);
+}
+
 .status-tab__title {
   margin: 0;
   font-size: var(--text-body-md);

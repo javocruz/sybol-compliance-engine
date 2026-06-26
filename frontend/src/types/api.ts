@@ -41,6 +41,11 @@ export interface SystemStatusResponse {
   platt_enabled?: boolean;
   vc_version?: string;
   app_env?: string;
+  ollama_available?: boolean;
+  ollama_model?: string;
+  ollama_base_url?: string;
+  ollama_detail?: string | null;
+  mistral_configured?: boolean;
 }
 
 export type LlmProvider = 'mistral' | 'ollama';

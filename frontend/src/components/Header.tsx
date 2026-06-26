@@ -15,7 +15,9 @@ function deriveStatus(data: SystemStatusResponse | null, error: boolean): ApiSta
     data.api === 'ok' &&
     data.qdrant === 'ok' &&
     data.rag_index_loaded &&
-    data.model_loaded;
+    data.model_loaded &&
+    data.sybol_configured !== false &&
+    data.mistral_configured !== false;
   return core ? 'connected' : 'degraded';
 }
 

@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from rag.llm import (
+    check_ollama_available,
     get_model_name,
     get_ollama_model,
     get_synthesis_llm,
@@ -56,3 +57,29 @@ def test_get_synthesis_llm_ollama(monkeypatch):
         call_kwargs = mock_cls.call_args.kwargs
         assert call_kwargs["model"] == "qwen2.5:7b-instruct"
         assert llm is mock_cls.return_value
+
+
+def test_check_ollama_available_connect_error(monkeypatch):
+    monkeypatch.setenv("OLLAMA_BASE_URL", "http://127.0.0.1:59999")
+
+    ok, detail = check_ollama_available()
+    assert ok is False
+    assert detail is not None
+    assert "not reachable" in detail
+
+
+def test_check_ollama_available_ok(monkeypatch):
+    monkeypatch.setenv("OLLAMA_BASE_URL", "http://ollama.test")
+    monkeypatch.setenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
+
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json.return_value = {
+        "models": [{"name": "qwen2.5:7b-instruct"}],
+    }
+
+    with patch("rag.llm.httpx.get", return_value=mock_response):
+        ok, detail = check_ollama_available()
+
+    assert ok is True
+    assert detail is None

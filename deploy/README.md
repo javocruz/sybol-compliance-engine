@@ -64,6 +64,14 @@ On server:
 cd ~/sybol-compliance-engine && bash deploy/deploy.sh
 ```
 
+When systemd is not installed, `deploy.sh` calls [`deploy/start-api-tmux.sh`](start-api-tmux.sh) to restart the API with `src/.env` loaded.
+
+Manual restart only:
+
+```bash
+bash deploy/start-api-tmux.sh
+```
+
 Flags: `--skip-ingest`, `--skip-frontend`
 
 Frontend (from laptop):

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { analyzeImage, ApiError } from '../api/client';
+import { analyzeImage, fetchSystemStatus, ApiError } from '../api/client';
 import type { AnalyzeResponse } from '../types/api';
 import { ImageUploader, isAcceptedImageType } from './ImageUploader';
 import { ImagePreview } from './ImagePreview';
@@ -14,6 +14,13 @@ export function AnalyzeTab() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<AnalyzeResponse | null>(null);
+  const [modelReady, setModelReady] = useState(true);
+
+  useEffect(() => {
+    void fetchSystemStatus()
+      .then((data) => setModelReady(data.model_loaded))
+      .catch(() => setModelReady(true));
+  }, []);
 
   useEffect(() => {
     if (!file) {
@@ -64,6 +71,14 @@ export function AnalyzeTab() {
           <p className="sybol-card-intro">
             JPEG, PNG, or WebP — scored against metadata, artifacts, visual CNN, and provenance.
           </p>
+          <div className="analyze-tab-demo-tips">
+            <strong>Demo expectations:</strong>
+            <ul>
+              <li>Authentic camera JPEG (EXIF intact) → ~0.8+, compliant</li>
+              <li>AI-generated PNG → ~0.26 cap, non-compliant</li>
+              <li>Edited / re-saved JPEG → ~0.35–0.6, review</li>
+            </ul>
+          </div>
           <ImageUploader onFileSelect={handleFileSelect} disabled={loading} />
           {previewUrl && file && (
             <ImagePreview file={file} previewUrl={previewUrl} />
@@ -76,7 +91,16 @@ export function AnalyzeTab() {
           >
             {loading ? 'Analyzing…' : 'Analyze authenticity'}
           </button>
-          {loading && <LoadingPanel />}
+          {loading && (
+            <LoadingPanel
+              title="Analyzing image…"
+              hint={
+                modelReady
+                  ? 'Scoring metadata, artifacts, visual signals, and provenance.'
+                  : 'Loading scoring model — first request after restart may take longer.'
+              }
+            />
+          )}
           {error && <ErrorAlert message={error} />}
         </section>
 

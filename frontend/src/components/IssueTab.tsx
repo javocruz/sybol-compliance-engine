@@ -89,7 +89,7 @@ export function IssueTab() {
           {loading && (
             <LoadingPanel
               title="Issuing credential…"
-              hint="Scoring, regulation lookup, audit write, and Sybol signing may take 30–60s on first run."
+              hint="Scoring, querying regulations, and Sybol signing — may take 15–30 seconds."
             />
           )}
           {error && <ErrorAlert title="Issuance failed" message={error} />}

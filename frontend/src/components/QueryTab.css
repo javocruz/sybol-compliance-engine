@@ -9,6 +9,12 @@
   padding: 0;
 }
 
+.query-tab-ollama-note {
+  margin: 0 0 0.75rem;
+  font-size: var(--text-body-sm);
+  color: var(--sybol-neutral-600);
+}
+
 .query-tab-llm-options {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -206,4 +212,16 @@
     grid-template-columns: 1fr 1fr;
     align-items: start;
   }
+}
+
+.query-tab-switch-llm {
+  margin-left: 0.35rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--sybol-teal-dark, #004751);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
 }

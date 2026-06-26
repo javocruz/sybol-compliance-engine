@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-from rag.query import _validate_refs, query_regulations
+from rag.query import _dedupe_refs, _validate_refs, query_regulations
 from src.rag.models import RegulationRef
 
 
@@ -60,6 +60,30 @@ def test_query_regulations_drops_unknown_metadata(mock_mistral, env_vars, mocker
     result = query_regulations(query="test query", index=index)
 
     assert result.regulation_refs == []
+
+
+def test_dedupe_refs_collapses_identical_citations():
+    refs = [
+        RegulationRef(
+            regulation="EU AI Act",
+            article="unknown",
+            sourceUrl="/api/regulations/eu_ai_act.pdf",
+            excerpt="a",
+        ),
+        RegulationRef(
+            regulation="EU AI Act",
+            article="unknown",
+            sourceUrl="/api/regulations/eu_ai_act.pdf",
+            excerpt="b",
+        ),
+        RegulationRef(
+            regulation="GDPR",
+            article="5",
+            sourceUrl="/api/regulations/gdpr.pdf",
+            excerpt="c",
+        ),
+    ]
+    assert len(_dedupe_refs(refs)) == 2
 
 
 def test_validate_refs_drops_only_unattributed_regulation():

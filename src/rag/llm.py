@@ -3,6 +3,7 @@ import os
 import time
 from typing import Literal
 
+import httpx
 from llama_index.core.llms import LLM
 from llama_index.llms.mistralai import MistralAI
 
@@ -18,6 +19,10 @@ If a requirement is not covered by the excerpts, say so explicitly.
 """
 
 logger = logging.getLogger(__name__)
+
+
+def get_ollama_base_url() -> str:
+    return os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
 
 
 def get_ollama_model() -> str:
@@ -37,7 +42,7 @@ def normalize_provider(value: str) -> LlmProvider:
 
 
 def resolve_provider(requested: LlmProvider) -> LlmProvider:
-    """Fall back to Ollama when Mistral key is missing."""
+    """Fall back to Ollama only when Mistral was requested but key is missing."""
     if requested == "mistral" and not os.environ.get("MISTRAL_API_KEY"):
         logger.warning(
             "MISTRAL_API_KEY not set — falling back to Ollama for synthesis."
@@ -46,13 +51,47 @@ def resolve_provider(requested: LlmProvider) -> LlmProvider:
     return requested
 
 
+def check_ollama_available() -> tuple[bool, str | None]:
+    """Ping Ollama /api/tags and confirm the configured model is present."""
+    base = get_ollama_base_url()
+    model = get_ollama_model()
+    timeout = float(os.getenv("OLLAMA_HEALTH_TIMEOUT", "3.0"))
+    try:
+        response = httpx.get(f"{base}/api/tags", timeout=timeout)
+        response.raise_for_status()
+    except httpx.ConnectError:
+        return (
+            False,
+            f"Ollama is not reachable at {base}. Start it with `ollama serve` "
+            f"(local dev) or install Ollama on the server.",
+        )
+    except httpx.TimeoutException:
+        return False, f"Ollama at {base} timed out after {timeout}s."
+    except httpx.HTTPError as exc:
+        return False, f"Ollama health check failed: {exc}"
+
+    try:
+        models = response.json().get("models", [])
+        names = {m.get("name", "").split(":")[0] for m in models}
+        model_base = model.split(":")[0]
+        if model_base not in names and model not in {m.get("name") for m in models}:
+            return (
+                False,
+                f"Model {model!r} is not pulled. Run: `ollama pull {model}`",
+            )
+    except Exception:
+        pass
+
+    return True, None
+
+
 def get_synthesis_llm(provider: LlmProvider = "mistral") -> LLM:
     if provider == "ollama":
         from llama_index.llms.ollama import Ollama
 
         return Ollama(
             model=get_ollama_model(),
-            base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+            base_url=get_ollama_base_url(),
             system_prompt=SYNTHESIS_PROMPT,
             request_timeout=float(os.getenv("OLLAMA_REQUEST_TIMEOUT", "120")),
         )
@@ -71,7 +110,7 @@ def get_synthesis_llm(provider: LlmProvider = "mistral") -> LLM:
 
 
 def complete_with_retry(llm: LLM, prompt: str, provider: LlmProvider) -> str:
-    """Synthesis with exponential backoff on rate limits / 5xx."""
+    """Synthesis with exponential backoff on rate limits / 5xx (Mistral only)."""
     if provider != "mistral":
         return str(llm.complete(prompt))
 

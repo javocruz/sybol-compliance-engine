@@ -81,6 +81,33 @@ export function StatusTab() {
       )}
 
       {status && (
+        <>
+        <div className="status-tab__links">
+          <a
+            className="btn-outline status-tab__link"
+            href={`${import.meta.env.VITE_API_BASE_URL ?? ''}/docs`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            API docs
+          </a>
+          <a
+            className="btn-outline status-tab__link"
+            href="https://sybol.develop.wallet.sybol.id/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Sybol wallet
+          </a>
+          <a
+            className="btn-outline status-tab__link"
+            href={`${import.meta.env.VITE_API_BASE_URL ?? ''}/api/status`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Status JSON
+          </a>
+        </div>
         <div className="status-tab__grid">
           <StatusCard label="API" value={status.api} ok={status.api === 'ok'} />
           <StatusCard
@@ -107,6 +134,24 @@ export function StatusTab() {
             value={status.sybol_configured ? 'Configured' : 'Not configured'}
             ok={status.sybol_configured}
           />
+          <StatusCard
+            label="Mistral (cloud)"
+            value={
+              status.mistral_configured
+                ? 'Configured'
+                : 'Not configured'
+            }
+            ok={status.mistral_configured}
+          />
+          <StatusCard
+            label="Ollama (local)"
+            value={
+              status.ollama_available
+                ? status.ollama_model ?? 'Available'
+                : status.ollama_detail ?? 'Unavailable'
+            }
+            ok={status.ollama_available}
+          />
           <StatusCard label="Git commit" value={status.git_commit ?? '—'} />
           <StatusCard
             label="Uptime"
@@ -126,6 +171,7 @@ export function StatusTab() {
             value={status.public_base_url ?? 'Not set'}
           />
         </div>
+        </>
       )}
     </div>
   );

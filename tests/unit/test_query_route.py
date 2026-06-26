@@ -64,6 +64,10 @@ def test_query_returns_structured_regulation_refs(
 def test_query_calls_query_regulations_with_question_and_provider(
     mocker, mock_index, mock_compliance_result
 ):
+    mocker.patch(
+        "src.api.routes.query.check_ollama_available",
+        return_value=(True, None),
+    )
     mock_query = mocker.patch(
         "src.api.routes.query.query_regulations",
         return_value=mock_compliance_result,
@@ -94,6 +98,10 @@ def test_query_ollama_response_includes_model_name(
 ):
     monkeypatch.setenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
     mocker.patch(
+        "src.api.routes.query.check_ollama_available",
+        return_value=(True, None),
+    )
+    mocker.patch(
         "src.api.routes.query.query_regulations",
         return_value=mock_compliance_result,
     )
@@ -108,6 +116,41 @@ def test_query_ollama_response_includes_model_name(
         body = response.json()
         assert body["llm_provider"] == "ollama"
         assert body["llm_model"] == "qwen2.5:7b-instruct"
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_query_returns_503_when_mistral_not_configured(mocker, mock_index, monkeypatch):
+    monkeypatch.delenv("MISTRAL_API_KEY", raising=False)
+    app.dependency_overrides[get_index] = lambda: mock_index
+
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        response = client.post(
+            "/api/query",
+            json={"question": "test", "llm_provider": "mistral"},
+        )
+        assert response.status_code == 503
+        assert "MISTRAL_API_KEY" in response.json()["detail"]
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_query_returns_503_when_ollama_unavailable(mocker, mock_index):
+    mocker.patch(
+        "src.api.routes.query.check_ollama_available",
+        return_value=(False, "Ollama is not reachable at http://localhost:11434."),
+    )
+    app.dependency_overrides[get_index] = lambda: mock_index
+
+    try:
+        client = TestClient(app, raise_server_exceptions=False)
+        response = client.post(
+            "/api/query",
+            json={"question": "test", "llm_provider": "ollama"},
+        )
+        assert response.status_code == 503
+        assert "Ollama" in response.json()["detail"]
     finally:
         app.dependency_overrides.clear()
 

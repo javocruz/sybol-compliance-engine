@@ -22,11 +22,13 @@ function writeHeaders(extra?: HeadersInit): Headers {
 
 export class ApiError extends Error {
   status?: number;
+  retryAfter?: number;
 
-  constructor(message: string, status?: number) {
+  constructor(message: string, status?: number, retryAfter?: number) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.retryAfter = retryAfter;
   }
 }
 
@@ -45,10 +47,27 @@ async function parseErrorMessage(res: Response): Promise<string> {
   return message;
 }
 
+function parseRetryAfter(res: Response): number | undefined {
+  const raw = res.headers.get('Retry-After');
+  if (!raw) return undefined;
+  const seconds = parseInt(raw, 10);
+  return Number.isFinite(seconds) ? seconds : undefined;
+}
+
+async function throwApiError(res: Response): Promise<never> {
+  const message = await parseErrorMessage(res);
+  const retryAfter = parseRetryAfter(res);
+  let fullMessage = message;
+  if (res.status === 429 && retryAfter != null) {
+    fullMessage = `${message} Try again in ${retryAfter}s.`;
+  }
+  throw new ApiError(fullMessage, res.status, retryAfter);
+}
+
 export async function healthCheck(): Promise<HealthResponse> {
   const res = await fetch(`${base}/health`);
   if (!res.ok) {
-    throw new ApiError(await parseErrorMessage(res), res.status);
+    await throwApiError(res);
   }
   return res.json() as Promise<HealthResponse>;
 }
@@ -56,7 +75,7 @@ export async function healthCheck(): Promise<HealthResponse> {
 export async function fetchSystemStatus(): Promise<SystemStatusResponse> {
   const res = await fetch(`${base}/api/status`);
   if (!res.ok) {
-    throw new ApiError(await parseErrorMessage(res), res.status);
+    await throwApiError(res);
   }
   return res.json() as Promise<SystemStatusResponse>;
 }
@@ -66,7 +85,7 @@ export async function analyzeImage(file: File): Promise<AnalyzeResponse> {
   form.append('file', file);
   const res = await fetch(`${base}/api/analyze`, { method: 'POST', body: form });
   if (!res.ok) {
-    throw new ApiError(await parseErrorMessage(res), res.status);
+    await throwApiError(res);
   }
   return res.json() as Promise<AnalyzeResponse>;
 }
@@ -81,7 +100,7 @@ export async function queryRegulations(
     body: JSON.stringify({ question, llm_provider: llmProvider }),
   });
   if (!res.ok) {
-    throw new ApiError(await parseErrorMessage(res), res.status);
+    await throwApiError(res);
   }
   return res.json() as Promise<QueryResponse>;
 }
@@ -95,7 +114,7 @@ export async function issueCredential(file: File): Promise<IssueResponse> {
     body: form,
   });
   if (!res.ok) {
-    throw new ApiError(await parseErrorMessage(res), res.status);
+    await throwApiError(res);
   }
   return res.json() as Promise<IssueResponse>;
 }
@@ -104,7 +123,7 @@ export async function fetchVerifyCredential(vcId: string): Promise<VerifyRespons
   const encoded = encodeURIComponent(vcId);
   const res = await fetch(`${base}/api/verify/${encoded}`);
   if (!res.ok) {
-    throw new ApiError(await parseErrorMessage(res), res.status);
+    await throwApiError(res);
   }
   return res.json() as Promise<VerifyResponse>;
 }

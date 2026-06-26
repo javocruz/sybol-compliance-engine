@@ -12,6 +12,23 @@ logger = logging.getLogger(__name__)
 _KNOWN_ARTICLE_PLACEHOLDERS = frozenset({"unknown", "n/a", "none", ""})
 
 
+def _dedupe_refs(refs: list[RegulationRef]) -> list[RegulationRef]:
+    """Collapse duplicate regulation/article/url tuples from retrieval."""
+    seen: set[tuple[str, str, str]] = set()
+    unique: list[RegulationRef] = []
+    for ref in refs:
+        key = (
+            (ref.regulation or "").strip().lower(),
+            (ref.article or "").strip().lower(),
+            (ref.source_url or "").strip(),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(ref)
+    return unique
+
+
 def _validate_refs(
     refs: list[RegulationRef],
     known_articles: set[str] | None = None,
@@ -117,5 +134,5 @@ def query_regulations(
 
     return ComplianceResult(
         summary=summary,
-        regulation_refs=_validate_refs(refs, known_articles),
+        regulation_refs=_validate_refs(_dedupe_refs(refs), known_articles),
     )
