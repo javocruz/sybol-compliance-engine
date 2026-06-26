@@ -164,7 +164,8 @@ cd frontend && VITE_API_BASE_URL= npm run build
 |------|--------|
 | Public URL | **http://54.154.92.29:8000/** |
 | Qdrant | Running (`sybol-qdrant`, 1,773 chunks) |
-| API | uvicorn (migrate to systemd — see `deploy/sybol-api.service`) |
+| API | tmux via `deploy/start-api-tmux.sh` (systemd pending sudo) |
+| Health cron | `*/5` min → `~/sybol-healthcheck.log` |
 | HTTPS | Configure Caddy — `deploy/Caddyfile`, set `PUBLIC_BASE_URL=https://…` |
 | Elastic IP | Ask Pelayo — attach so IP survives reboot |
 

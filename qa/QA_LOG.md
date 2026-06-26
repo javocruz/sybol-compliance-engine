@@ -178,3 +178,32 @@ Per-image scores: `qa/test_cases/golden/scoring_report.csv` (67 rows, includes s
 `build_vc_payload` emits **W3C VC Data Model 1.1** (`@context: …/2018/credentials/v1`, `issuanceDate`, no `issuer` in body). The QA plan/README reference "VC 2.0". The QA suite validates the *actual* shape (1.1) and pins the version in `test_vc_data_model_version` so a future 2.0 migration updates in one place. Either the docs or the builder should be reconciled.
 
 **Acceptance thresholds met where automated:** scoring accuracy, FPR, FNR, VC schema pass-rate, VC issuance success-rate. RAG precision/recall not yet measurable (blocked on PDFs).
+
+---
+
+## EC2 public demo dry-run — 2026-06-26
+
+**URL:** http://54.154.92.29:8000/  
+**Commit:** `6f219ec` (`fix: harden EC2 demo — Ollama 503, tmux deploy, and UI polish`)  
+**Process manager:** tmux (`deploy/start-api-tmux.sh` via `deploy/deploy.sh`)  
+**Health cron:** `*/5 * * * *` → `~/sybol-healthcheck.log`
+
+### Ceremony flow (docs/DEMO_CEREMONY.md)
+
+| Step | Result | Latency (approx.) |
+|------|--------|-------------------|
+| `/api/status` | ✅ api, qdrant, RAG, model, Mistral, Sybol | — |
+| Analyze authentic (`ar20.jpg`) | ✅ 0.83, `compliant` | ~2.3s |
+| Analyze AI (`beach_dalle.png`) | ✅ 0.26, `non-compliant` (synthetic cap) | ~1.3s |
+| Query (Mistral) | ✅ answer + **1** deduped regulation ref | ~8.6s |
+| Query (Ollama) | ✅ **503** with clear message (not 500) | — |
+| Issue + Sybol sign | ✅ `signed_vc_issued` | ~19s |
+| Verify `GET /api/verify/{vc_id}` | ✅ `valid: true`, `audit_found: true` | — |
+| Evidence URL | ✅ `http://54.154.92.29:8000/api/audit/{uuid}` → HTTP 200 | — |
+
+### Infrastructure notes
+
+- **Provenance index:** 30 authentic reference images on EC2 (`qa/test_cases/authentic/`).
+- **`PUBLIC_BASE_URL`:** `http://54.154.92.29:8000` (aligned with live demo URL).
+- **sudo:** not available without password on `javier@54.154.92.29` — **systemd + Caddy blocked** until Pelayo grants sudo or runs install. Request template: [`deploy/PELAYO_REQUEST.md`](../deploy/PELAYO_REQUEST.md) (Elastic IP, SG :443, DNS `compliance.sybol.id`).
+
